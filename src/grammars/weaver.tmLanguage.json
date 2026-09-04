@@ -1,0 +1,153 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "weaver",
+  "scopeName": "source.weaver",
+  "patterns": [
+    { "include": "#var" },
+    { "include": "#tag" },
+    { "include": "#processor" },
+    { "include": "#command" },
+    { "include": "#document" },
+    { "include": "#trigger" }
+  ],
+  "repository": {
+    "var": {
+      "name": "meta.interpolation.weaver",
+      "begin": "\\{\\{",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.interpolation.weaver" }
+      },
+      "end": "\\}\\}",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.interpolation.weaver" }
+      },
+      "patterns": [
+        {
+          "match": "[A-Za-z_]\\w*(?=\\s*:)",
+          "name": "entity.name.namespace.weaver"
+        },
+        { "match": ":", "name": "punctuation.separator.weaver" },
+        { "match": "[A-Za-z_]\\w*", "name": "variable.other.weaver" }
+      ]
+    },
+
+    "tag": {
+      "name": "meta.tag-block.weaver",
+      "begin": "\\{#",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.tag-block.weaver" }
+      },
+      "end": "#\\}",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.tag-block.weaver" }
+      },
+      "patterns": [
+        {
+          "match": "\\b(?:if|elif|else|endif|foreach|endforeach|in)\\b",
+          "name": "keyword.control.weaver"
+        },
+        { "include": "#expr-atom" }
+      ]
+    },
+
+    "processor": {
+      "name": "meta.processor.weaver",
+      "begin": "(@\\[)\\s*([A-Za-z_]\\w*(?:\\.[A-Za-z_]\\w*)*)?",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.processor.weaver" },
+        "2": { "name": "entity.name.function.weaver" }
+      },
+      "end": "\\]",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.processor.weaver" }
+      },
+      "patterns": [
+        {
+          "match": "[A-Za-z_]\\w*(?=\\s*:)",
+          "name": "variable.parameter.weaver"
+        },
+        { "include": "#expr-atom" }
+      ]
+    },
+
+    "command": {
+      "name": "meta.command.weaver",
+      "begin": "(\\$\\[)\\s*([A-Za-z_]\\w*(?:\\.[A-Za-z_]\\w*)*)?",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.command.weaver" },
+        "2": { "name": "entity.name.function.weaver" }
+      },
+      "end": "\\]",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.command.weaver" }
+      },
+      "patterns": [{ "include": "#expr-atom" }]
+    },
+
+    "document": {
+      "name": "meta.document-ref.weaver",
+      "begin": "\\[\\[",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.document.weaver" }
+      },
+      "end": "\\]\\]",
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.document.weaver" }
+      },
+      "patterns": [
+        { "match": "[A-Za-z0-9_]+", "name": "entity.name.label.weaver" }
+      ]
+    },
+
+    "trigger": {
+      "name": "meta.tag.trigger.weaver",
+      "begin": "</?trigger\\b",
+      "beginCaptures": {
+        "0": { "name": "entity.name.tag.weaver" }
+      },
+      "end": "/?>",
+      "endCaptures": {
+        "0": { "name": "entity.name.tag.weaver" }
+      },
+      "patterns": [
+        {
+          "match": "[A-Za-z_][\\w-]*(?=\\s*=)",
+          "name": "entity.other.attribute-name.weaver"
+        },
+        { "match": "=", "name": "keyword.operator.weaver" },
+        {
+          "match": "\"(?:[^\"\\\\]|\\\\.)*\"",
+          "name": "string.quoted.double.weaver"
+        },
+        { "match": "[A-Za-z_]\\w*", "name": "variable.other.weaver" }
+      ]
+    },
+
+    "expr-atom": {
+      "patterns": [
+        { "include": "#var" },
+        { "include": "#processor" },
+        { "include": "#command" },
+        { "include": "#document" },
+        { "include": "#trigger" },
+        {
+          "match": "\"(?:[^\"\\\\]|\\\\.)*\"",
+          "name": "string.quoted.double.weaver"
+        },
+        { "match": "-?\\d+(?:\\.\\d+)?", "name": "constant.numeric.weaver" },
+        {
+          "match": "\\b(?:true|false)\\b",
+          "name": "constant.language.boolean.weaver"
+        },
+        { "match": "\\bnone\\b", "name": "constant.language.null.weaver" },
+        {
+          "match": "(?:==|!=|<=|>=|&&|\\|\\|)",
+          "name": "keyword.operator.weaver"
+        },
+        { "match": "[+\\-*/<>!]", "name": "keyword.operator.weaver" },
+        { "match": "[(),:]", "name": "punctuation.separator.weaver" },
+        { "match": "[A-Za-z_]\\w*", "name": "variable.other.weaver" }
+      ]
+    }
+  }
+}

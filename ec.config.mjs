@@ -17,6 +17,11 @@ const weaverTokenColors = [
     ],
     settings: { foreground: '#7c8a9e', fontStyle: 'bold' },
   },
+  // whitespace trim markers: {#- -#}  {{- -}}  $[- -]  @[- -]
+  {
+    scope: 'punctuation.definition.trim.weaver',
+    settings: { foreground: '#7c8a9e', fontStyle: 'bold' },
+  },
   // @[ ] $[ ] [[ ]] brackets  (t.squareBracket)
   {
     scope: [
@@ -28,10 +33,17 @@ const weaverTokenColors = [
   },
   // control keywords  (t.controlKeyword)
   { scope: 'keyword.control.weaver', settings: { foreground: '#c678dd', fontStyle: 'bold' } },
+  // flow statements: break / continue / return / stop
+  {
+    scope: 'keyword.control.flow.weaver',
+    settings: { foreground: '#c678dd', fontStyle: 'bold italic' },
+  },
   // scope before colon  (t.namespace)
   { scope: 'entity.name.namespace.weaver', settings: { foreground: '#56b6c2' } },
   // bare identifiers  (t.variableName)
   { scope: 'variable.other.weaver', settings: { foreground: '#e5c07b' } },
+  // dotted path segments: {{char:alice.stats.hp}}
+  { scope: 'variable.other.property.weaver', settings: { foreground: '#e5c07b' } },
   // processor / command name  (t.function)
   { scope: 'entity.name.function.weaver', settings: { foreground: '#61afef' } },
   // arg keys + strings  (t.propertyName, t.string)
@@ -52,7 +64,14 @@ const weaverTokenColors = [
   // operators  (t.operator)
   { scope: 'keyword.operator.weaver', settings: { foreground: '#56b6c2' } },
   // punctuation  (t.punctuation)
-  { scope: 'punctuation.separator.weaver', settings: { foreground: '#828a99' } },
+  {
+    scope: [
+      'punctuation.separator.weaver',
+      'punctuation.accessor.weaver',
+      'punctuation.definition.array.weaver',
+    ],
+    settings: { foreground: '#828a99' },
+  },
   // <trigger>  (t.tagName)
   { scope: 'entity.name.tag.weaver', settings: { foreground: '#e06c75', fontStyle: 'bold' } },
   // [[doc]] ids  (t.labelName)

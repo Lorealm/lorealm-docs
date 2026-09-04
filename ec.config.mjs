@@ -6,21 +6,47 @@ const weaverGrammar = JSON.parse(
   fs.readFileSync(new URL('./src/grammars/weaver.tmLanguage.json', import.meta.url), 'utf-8'),
 );
 
-// Mirrors your CodeMirror HighlightStyle, keyed to the grammar's `.weaver` scopes.
-// Because every scope is weaver-specific, these rules never touch your other languages.
-const weaverTokenColors = [
+const palettes = {
+  dark: {
+    delimiter: '#8b83a8', // {{ }} {# #} and trim markers — structural, recedes
+    bracket: '#d9a441', // @[ ] $[ ] [[ ]] — the warm counterpoint
+    keyword: '#c792ea',
+    namespace: '#5ccfc0',
+    variable: '#e8c98a',
+    function: '#9d8cf5',
+    string: '#7fd6a8',
+    constant: '#e3a566',
+    punctuation: '#7d7699',
+    tag: '#f07fa0',
+  },
+  light: {
+    delimiter: '#6b6483',
+    bracket: '#9a6b12',
+    keyword: '#7c3fbf',
+    namespace: '#0f7a72',
+    variable: '#8a5a10',
+    function: '#4f46c9',
+    string: '#16794f',
+    constant: '#a1560c',
+    punctuation: '#6b6483',
+    tag: '#c02454',
+  },
+};
+
+/** Keyed to the grammar's `.weaver` scopes, so these never touch other languages. */
+const weaverTokenColors = (c) => [
   // {{ }} and {# #} delimiters  (t.brace)
   {
     scope: [
       'punctuation.definition.interpolation.weaver',
       'punctuation.definition.tag-block.weaver',
     ],
-    settings: { foreground: '#7c8a9e', fontStyle: 'bold' },
+    settings: { foreground: c.delimiter, fontStyle: 'bold' },
   },
   // whitespace trim markers: {#- -#}  {{- -}}  $[- -]  @[- -]
   {
     scope: 'punctuation.definition.trim.weaver',
-    settings: { foreground: '#7c8a9e', fontStyle: 'bold' },
+    settings: { foreground: c.delimiter, fontStyle: 'bold' },
   },
   // @[ ] $[ ] [[ ]] brackets  (t.squareBracket)
   {
@@ -29,27 +55,27 @@ const weaverTokenColors = [
       'punctuation.definition.command.weaver',
       'punctuation.definition.document.weaver',
     ],
-    settings: { foreground: '#c98a3a', fontStyle: 'bold' },
+    settings: { foreground: c.bracket, fontStyle: 'bold' },
   },
   // control keywords  (t.controlKeyword)
-  { scope: 'keyword.control.weaver', settings: { foreground: '#c678dd', fontStyle: 'bold' } },
+  { scope: 'keyword.control.weaver', settings: { foreground: c.keyword, fontStyle: 'bold' } },
   // flow statements: break / continue / return / stop
   {
     scope: 'keyword.control.flow.weaver',
-    settings: { foreground: '#c678dd', fontStyle: 'bold italic' },
+    settings: { foreground: c.keyword, fontStyle: 'bold italic' },
   },
   // scope before colon  (t.namespace)
-  { scope: 'entity.name.namespace.weaver', settings: { foreground: '#56b6c2' } },
+  { scope: 'entity.name.namespace.weaver', settings: { foreground: c.namespace } },
   // bare identifiers  (t.variableName)
-  { scope: 'variable.other.weaver', settings: { foreground: '#e5c07b' } },
+  { scope: 'variable.other.weaver', settings: { foreground: c.variable } },
   // dotted path segments: {{char:alice.stats.hp}}
-  { scope: 'variable.other.property.weaver', settings: { foreground: '#e5c07b' } },
+  { scope: 'variable.other.property.weaver', settings: { foreground: c.variable } },
   // processor / command name  (t.function)
-  { scope: 'entity.name.function.weaver', settings: { foreground: '#61afef' } },
+  { scope: 'entity.name.function.weaver', settings: { foreground: c.function } },
   // arg keys + strings  (t.propertyName, t.string)
   {
     scope: ['variable.parameter.weaver', 'string.quoted.double.weaver'],
-    settings: { foreground: '#98c379' },
+    settings: { foreground: c.string },
   },
   // numbers, booleans, none, attr values  (t.number / t.bool / t.null / t.attributeName)
   {
@@ -59,10 +85,10 @@ const weaverTokenColors = [
       'constant.language.null.weaver',
       'entity.other.attribute-name.weaver',
     ],
-    settings: { foreground: '#d19a66' },
+    settings: { foreground: c.constant },
   },
   // operators  (t.operator)
-  { scope: 'keyword.operator.weaver', settings: { foreground: '#56b6c2' } },
+  { scope: 'keyword.operator.weaver', settings: { foreground: c.namespace } },
   // punctuation  (t.punctuation)
   {
     scope: [
@@ -70,24 +96,47 @@ const weaverTokenColors = [
       'punctuation.accessor.weaver',
       'punctuation.definition.array.weaver',
     ],
-    settings: { foreground: '#828a99' },
+    settings: { foreground: c.punctuation },
   },
   // <trigger>  (t.tagName)
-  { scope: 'entity.name.tag.weaver', settings: { foreground: '#e06c75', fontStyle: 'bold' } },
+  { scope: 'entity.name.tag.weaver', settings: { foreground: c.tag, fontStyle: 'bold' } },
   // [[doc]] ids  (t.labelName)
-  { scope: 'entity.name.label.weaver', settings: { foreground: '#e5c07b', fontStyle: 'underline' } },
+  {
+    scope: 'entity.name.label.weaver',
+    settings: { foreground: c.variable, fontStyle: 'underline' },
+  },
 ];
 
 export default defineEcConfig({
-  // Your normal theme(s) for every other language stay as-is.
-  // themes: ['github-dark', 'github-light'],
+  themes: ['material-theme-palenight', 'github-light'],
   shiki: {
     langs: [weaverGrammar],
   },
-  // Called once per active theme; we append the weaver rules so they apply
-  // regardless of which base theme (light/dark) is in use.
+  styleOverrides: {
+    borderRadius: '0',
+    borderWidth: '1px',
+    borderColor: 'var(--sl-color-hairline-light)',
+    codeBackground: 'var(--lr-code-bg)',
+    codeFontFamily: 'var(--sl-font-mono)',
+    codeFontSize: '0.85rem',
+    codeLineHeight: '1.7',
+    frames: {
+      shadowColor: 'transparent',
+      editorTabBarBackground: 'var(--lr-code-chrome)',
+      editorTabBarBorderBottomColor: 'var(--sl-color-hairline-light)',
+      editorActiveTabBackground: 'var(--lr-code-bg)',
+      editorActiveTabBorderColor: 'transparent',
+      editorActiveTabIndicatorTopColor: 'var(--sl-color-accent)',
+      editorActiveTabIndicatorBottomColor: 'transparent',
+      editorBackground: 'var(--lr-code-bg)',
+      terminalBackground: 'var(--lr-code-bg)',
+      terminalTitlebarBackground: 'var(--lr-code-chrome)',
+      terminalTitlebarBorderBottomColor: 'var(--sl-color-hairline-light)',
+      inlineButtonBackground: 'var(--sl-color-accent)',
+    },
+  },
   customizeTheme: (theme) => {
-    theme.settings.push(...weaverTokenColors);
+    theme.settings.push(...weaverTokenColors(palettes[theme.type] ?? palettes.dark));
     return theme;
   },
 });

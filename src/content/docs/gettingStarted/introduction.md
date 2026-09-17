@@ -1,0 +1,77 @@
+---
+title: Introduction
+description: A brief introduction to Lorealm
+---
+
+## Welcome
+
+Hello, and welcome to **Lorealm**!
+
+Lorealm *(Lore + Realm)* is the next generation platform for LLM chat/roleplay.
+It builds on top of familiar concepts in a way that enables the author to achieve
+unparalleled control.
+
+> **The tool should never be the reason you stopped.**
+
+## Lorealm, Explained
+
+Okay... But *why* is Lorealm supposedly "better"?...
+
+The answer can be summarized by one keyword:
+
+**Versatility**
+
+Whatever you can think of is expressible through Lorealm. *A simple
+character?* Light work. *A full digital world?* It might take a while, but go for it.
+*Okay... How about a full on strategy game?...* Sure, go ahead.
+
+These are not your average cases of *"You are a strategy game orchestrator, follow these
+rules..."*. You really *can* program your own game logic, add multiple LLM-driven
+(or human-driven) actors and fine tune **exactly** what they see and what they don't.
+
+## Our Values
+
+In Lorealm, we put a lot of effort into making sure **you**, the user, have the best
+experience possible. We don't want to stand in between you and your creative limits.
+
+To ensure we can deliver, we abide by a few design principles.
+
+### Clarity
+Everything you see should be crystal clear. We don't want to make you guess what a
+particular system does, how it interacts with something else or what order your prompts
+arrive in. Everything in the official Lorealm app is designed around this principle.
+
+### Extensibility
+We know we can't please everyone. We've designed Lorealm to be as open as possible.
+This means that you have the option to add on to, silence or outright remove many
+systems in Lorealm.
+
+We aim for (almost) every part of the application to be overridable. There should be
+no reason you can't change where a certain button resides, what it does, or heck, even
+use your own custom client.
+
+### Privacy
+Every part of Lorealm is **private** and **secure** by default. In the spirit of
+extensibility, we *do* allow Lorealm to be run as a proper hosted instance with
+multiple concurrent users, but this is something you opt in to.
+
+All sensitive information is encrypted with keys *you* manage. Passwords are
+hashed using the secure [Argon2](https://en.wikipedia.org/wiki/Argon2) algorithm and API keys have undergone significant
+effort to make sure they are as securely stored as possible.
+
+### Community
+LLM-driven roleplay has always been community-driven, with traces all the way back
+to 2019 with AIDungeon's character sharing. The community has always been at the
+forefront, sharing character cards, developing tools and extensions and so much more.
+
+We do not want to take away from that. In fact, we want to empower it. We've designed 
+every part of Lorealm so your creativity can be expressed *and* distributed.
+Every cog in the machine was designed with this in mind.
+
+### Always free, always open
+Lorealm will forever remain free to use and publicly available under the MIT
+license. We are committed to keeping Lorealm Open Source and nothing will ever
+change that.
+
+We do not accept donations. If you want to support us, please consider contributing
+to the community in other ways.

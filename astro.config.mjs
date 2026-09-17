@@ -23,17 +23,14 @@ export default defineConfig({
 					},
 				},
 			],
-			sidebar: [
-				{
-					label: 'Guides',
-					items: [
-						// Each item here is one entry in the navigation menu.
-						{ label: 'Example Guide', slug: 'guides/example' },
-					],
+      sidebar: [
+        {
+					label: 'Getting Started',
+					items: [{ autogenerate: { directory: 'gettingStarted' } }],
 				},
 				{
-					label: 'Reference',
-					items: [{ autogenerate: { directory: 'reference' } }],
+					label: 'Weaver',
+					items: [{ autogenerate: { directory: 'weaver' } }],
 				},
 			],
 		}),

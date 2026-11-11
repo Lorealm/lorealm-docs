@@ -6,7 +6,7 @@ import starlight from '@astrojs/starlight';
 export default defineConfig({
 	integrations: [
 		starlight({
-			title: 'My Docs',
+			title: 'Lorealm Docs',
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/withastro/starlight' }],
 			customCss: ['./src/styles/lorealm.css'],
 			head: [
@@ -26,11 +26,19 @@ export default defineConfig({
       sidebar: [
         {
 					label: 'Getting Started',
-					items: [{ autogenerate: { directory: 'gettingStarted' } }],
+					items: [{ autogenerate: { directory: 'getting-started' } }],
 				},
 				{
 					label: 'Weaver',
 					items: [{ autogenerate: { directory: 'weaver' } }],
+        },
+        {
+					label: 'Realms',
+					items: [{ autogenerate: { directory: 'realms' } }],
+				},
+        {
+					label: 'Lorebooks',
+					items: [{ autogenerate: { directory: 'lorebooks' } }],
 				},
 			],
 		}),

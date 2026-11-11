@@ -1,0 +1,105 @@
+---
+title: Compatibility
+description: How compatible lorebooks are with third-party services
+---
+import TermBadge from '../../../components/TermBadge.astro';
+
+Lorealm's Lorebooks are more featureful than most other platforms out there. Most of
+this is due to <a href="/weaver/weaver-lang">Weaver</a>, and that means Lorebooks made in Lorealm may not always function
+identically across platforms.
+
+## Compatibility Matrix
+| Target Platform | Import | Export |
+|-----------------|--------|--------|
+| SillyTavern     | ✅     | ✅*    |
+
+\* Subject to potential data loss, read below for details.
+
+
+## Text Content
+While raw text will function identically across any platform you use, there are some
+cases to be aware of.
+
+Many platforms have macros/variables, so you can expect your basic 
+`{{char:name}}`/`{{user:name}}` variables to function identically. These are converted
+during the export process. More advanced variables likely will not work. If you have
+an advanced currency system that defines `{{market:stall.weapons.sword.cost}}`,
+these are almost certainly not going to work in other software. These will be
+exported as plain text.
+
+See the macro list for what's supported.
+
+## Fields
+Many fields used in activation conditions are not supported in other applications.
+
+In the section below, a <TermBadge term="lossy"/> badge signifies the following:
+
+This field is dropped on export. This also means the field's data may lost and
+may not return when importing the exported Lorebook back into Lorealm.
+
+> Fields not present in each section are compatible with the target platform
+
+### SillyTavern
+#### Regex Keys
+SillyTavern lets you use regular expressions as keywords, and so does Lorealm.
+The common ones work the same in both, so if you use simple patterns, you don't need
+to worry about this.
+
+SillyTavern and Lorealm read these patterns in slightly different ways, so a few
+advanced patterns behave differently between the two. If a pattern can't work in
+Lorealm, it's kept exactly as written. It won't trigger the entry in Lorealm, but
+it will still work if you export the Lorebook back to SillyTavern.
+
+If you didn't write any patterns yourself, you can skip the table below. It's for people who write advanced patterns.
+
+<details>
+<summary>Full incompatibility table</summary>
+| Feature | Example | SillyTavern → Lorealm | Lorealm → SillyTavern |
+|---|---|---|---|
+| Lookarounds | `(?=…)`, `(?!…)`, `(?<=…)`, `(?<!…)` | Not supported: imported as plain text | — |
+| Backreferences | `\1`, `\k<name>` | Not supported: imported as plain text | — |
+| Older named-group syntax | `(?P<name>…)` | — | Invalid in JavaScript |
+| Rust-only flags | `(?x)`, `(?U)`, `(?R)` | — | Invalid in JavaScript |
+| Flags partway through, or turned off | `a(?i)b`, `(?-i)` | — | Invalid in JavaScript |
+| Unicode classes | `\p{L}`, `\pL` | — | `\p{L}` matches the literal text `p{L}`; `\pL` is invalid |
+| Character by code | `\x{1F600}` | — | Invalid in JavaScript |
+| Whole-text anchors | `\A`, `\z` | — | Read as the letters `A` and `z` |
+| Word start or end | `\b{start}`, `\<`, `\>` | — | Not supported |
+| ASCII classes | `[[:alpha:]]` | — | Read as a set of literal characters |
+| Class operations | `[a-z&&[^aeiou]]`, `--`, `~~` | — | Read as literal characters |
+| Empty pattern | (empty) | — | Exported as `//`, which SillyTavern doesn't read as a regex |
+| `\w`, `\d`, `\b` | `\w+` | Wider: Rust counts every Unicode letter and digit | Narrower: JavaScript only counts ASCII, so "café" stops at "caf" |
+| Case-insensitive matching | `(?i)é` | Uses Unicode rules | Covers fewer non-English letters without the `u` flag |
+| `.` and line breaks | `a.b` | Neither matches `\n` | JavaScript also stops at `\r`, `\u2028` and `\u2029` |
+</details>
+
+#### Slots
+SillyTavern uses "positions". Here's how Lorealm slots map to SillyTavern positions:
+
+**Exporting:**
+- Prelude & Preamble -> Before Character
+- Backdrop & Setting -> After Character
+- Foreground -> Before Author's Note
+- Coda -> At depth 0
+- At depth (n) -> At depth (n)
+
+**Importing:**
+- Before Character -> Preamble
+- After Character -> Backdrop
+- Before/After Author's Note -> Foreground
+- At depth (n) -> At depth (n)
+- Others -> Backdrop
+
+#### Condition <TermBadge term="lossy" style="margin-left: 0.5em;"/>
+A condition in Lorealm is a snippet of Weaver code, so these won't work in SillyTavern.
+
+#### Priority <TermBadge term="lossy" style="margin-left: 0.5em;"/>
+SillyTavern does not have a concept for priority. This field is dropped.
+
+#### Fallback slots <TermBadge term="lossy" style="margin-left: 0.5em;"/>
+Same story here. Fallback slots do not exist in SillyTavern's format. Dropped.
+
+#### Tags <TermBadge term="lossy" style="margin-left: 0.5em;"/>
+No tags in SillyTavern either. Tags are a bit special in that they don't do much
+functionally on their own. These only matter for search functions and for more advanced
+Weaver functionality. If you're not using that, you'll probably be fine losing these.

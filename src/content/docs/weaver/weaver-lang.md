@@ -3,10 +3,13 @@ title: The Weaver Programming Language
 description: A reference for weaver_lang
 ---
 ## Introduction
-Weaver is a custom programming language created with Lorealm in mind. Weaver aims to give you, the author, more control over how things appear.
+Weaver is a custom programming language created with Lorealm in mind. Weaver aims to give
+you, the author, more control over how things appear.
 
 ## Use cases
-Weaver operates on the principle that every return type is eventually rendered as a string. Weaver is similar in spirit to Jinja, but 
+Weaver operates on the principle that every return type is eventually rendered as a string.
+Weaver is similar in spirit to Jinja, but with a deliberately smaller feature set and
+more native plugin support.
 
 ## Tokens
 ### Quick Reference

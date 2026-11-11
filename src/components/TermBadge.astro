@@ -1,0 +1,26 @@
+---
+import { Badge } from "@astrojs/starlight/components";
+
+interface Term {
+    text: string;
+    variant:
+        | "note"
+        | "danger"
+        | "success"
+        | "caution"
+        | "tip"
+        | "default"
+        | undefined;
+}
+
+const terms = {
+    beta: { text: "Beta", variant: "caution" },
+    deprecated: { text: "Deprecated", variant: "danger" },
+    lossy: { text: "Lossy", variant: "caution" },
+} as Record<string, Term>;
+
+const { term, ...rest } = Astro.props;
+const { text, variant } = terms[term];
+---
+
+<Badge text={text} variant={variant} {...rest} />

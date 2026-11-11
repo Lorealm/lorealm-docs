@@ -19,7 +19,7 @@ plan to run the server locally. It's as simple as:
 
 When running the executable file directly, it will open a terminal window. The first time
 you open it, it's going to walk you through an interactive setup process. Navigate with
-the arrow keys on your keyboard and click Enter to select.
+the arrow keys on your keyboard and press Enter to select.
 
 The simplest way to get started is to:
 1. Select "Local Use"
@@ -30,7 +30,7 @@ That's it. You're now up and running. You should see a message like:
 ```
 Server starting on 127.0.0.1:1551
 ```
-Simply open this URL in your browser and you're up and you should see the login page.
+Simply open this URL in your browser and you should see the login page.
 
 Log in with the Username and Password you entered earlier, follow the setup steps on
 screen, and have fun!
@@ -87,8 +87,8 @@ volumes:
 Copy the text above into a file called `docker-compose.yaml`. Be mindful of the folder
 you place it in. All paths are relative to this file.
 
-A few options to select the release stream you're targeting. In the image, you'll see
-the line that says:
+You have a few options to select the release stream you're targeting. In the image,
+you'll see the line that says:
 ```yaml
 image: ghcr.io/lorealm/lorealm:latest
 ```
@@ -102,7 +102,7 @@ details.
 |----------------------|----------------|
 | :latest              | Targets the latest stable release. Use this if you prefer stable releases. (default) |
 | :nightly             | Targets the latest GitHub commit. Use this if you prefer the latest cutting-edge updates. These updates may be unstable, so use at your own risk. |
-| :v\<version_number\> | Pins the release to a specific version (f.ex `:v0.1.0`). You will not recieve automatic updates. Use if you prefer updating manually.
+| :v\<version_number\> | Pins the release to a specific version (f.ex `:v0.1.0`). You will not receive automatic updates. Use if you prefer updating manually.
 </details>
 
 In the template, you'll see a few variables, most notably `LOREALM_ADMIN_USERNAME` and
@@ -113,7 +113,55 @@ how to do the latter here.
 > NOTE: The username and password variables are only needed on the first run. You may
 > delete them later.
 
-The server should now launch. The offical frontend should be downloaded automatically
+The server should now launch. The official frontend should be downloaded automatically
 unless one already exists. When it's done, everything should be accessible at the
 configured address (`http://127.0.0.1:1551` by default). Simply open the URL in your
 browser, log in with your credentials, and complete the setup steps on screen. Have fun!
+
+## Building from source
+This approach is generally preferred when you plan to contribute or tinker with the
+source code of Lorealm. You'll need to have some things installed first.
+
+### Prerequisites
+#### Rust
+Rust is needed to build the backend and the desktop client.
+
+<a href="https://rust-lang.org/tools/install/" target="_blank" rel="noopener noreferrer">Refer to the official installation guide</a>
+
+#### Bun
+Bun is the package manager we use to handle JavaScript-related dependencies.
+
+<a href="https://bun.com/docs/installation" target="_blank" rel="noopener noreferrer">Refer to the official installation guide</a>
+
+#### Tauri-related prerequisites
+Only needed if you want to build the desktop app.
+
+<a href="https://v2.tauri.app/start/prerequisites/" target="_blank" rel="noopener noreferrer">Refer to the official installation guide</a>
+
+---
+
+Once you have all the prerequisites installed, you need to build the frontend and
+the backend separately.
+
+### Building/Running the Backend
+```
+cd backend
+cargo run
+```
+
+### Building the Frontend
+```makefile
+make build-all # Builds everything
+```
+OR
+```makefile
+make build-ui # Builds the UI package
+
+make build-web # Builds the web-app
+make build-desktop # Builds the desktop app
+```
+
+### Configuring
+To make the backend serve this frontend, and not one downloaded from GitHub, you can
+edit the `backend/data/config.yaml` file and set the path to `../frontend/apps/web/dist`.
+You will have to re-run the build commands every time you update the frontend.

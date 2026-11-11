@@ -23,8 +23,8 @@ name: Dark Forest Description
 keywords: ["dark forest", "shadowed path"]
 condition: '{{state:location}} == "forest"'
 priority: 150
-slot: foundation
-fallback: [context]
+slot: backdrop
+fallback: [setting]
 sticky_turns: 2
 ---
 {# if {{state:level}} > 5 #}
@@ -35,7 +35,7 @@ The dark forest looms, its shadows deep and menacing.
 Threat level: @[text.upper(text: "high")]
 $[set_var("state:visited_forest", true)]
 ```
-The file is split into two parts, seperated by three dashes: `---`
+The file is split into two parts, separated by three dashes: `---`
 
 ### Frontmatter/Metadata
 The first part declares the metadata of an entry. This provides the engine with useful information such as where to find the entry, how to activate it, where in the context it should appear, and much more. If you've used SillyTavern, this should feel familiar.
@@ -49,18 +49,18 @@ The frontmatter supports a variety of properties that may be useful. Here's a co
 |-----------------|---------------------------------------------------------------------------------------------------|----------|
 | id              | The id used to access this entry                                                                  | ❌        |
 | name            | A human-readable name                                                                             | ❌        |
-| keywords        | A list of keywords used for activation                                                            | ✅        |
-| regex           | A list of regular expressions used for activation                                                 | ✅        |
-| condition       | A Weaver expression used for activation. Must evaluate to either true or false                    | ✅        |
-| scan_depth      | How many messages should be scanned for keyword/regex matches                                     | ✅        |
+| keywords        | A list of keywords used for activation                                                            | ✅       |
+| regex           | A list of regular expressions used for activation                                                 | ✅       |
+| condition       | A Weaver expression used for activation. Must evaluate to either true or false                    | ✅       |
+| scan_depth      | How many messages should be scanned for keyword/regex matches                                     | ✅       |
 | constant        | Whether this entry should always be active, despite keyword/regex/condition contents              | ❌        |
-| priority        | Used for deciding which entries should be evaluated first. Higher priority = evaluated earlier.   | ✅        |
+| priority        | Used for deciding which entries should be evaluated first. Higher priority = evaluated earlier.   | ✅       |
 | slot            | Which context slot this entry should appear in when activated                                     | ❌        |
-| fallback        | A list of fallback slots to use if the primary slot is not available                              | ✅        |
+| fallback        | A list of fallback slots to use if the primary slot is not available                              | ✅       |
 | insertion_order | Used for deciding which entries are rendered first. Higher order = inserted later.                | ❌        |
 | enabled         | Whether this entry is enabled                                                                     | ❌        |
 | sticky_turns    | How many turns this entry should remain pinned for after being activated. 0 = always re-evaluate. | ❌        |
 | cooldown        | How many turns required between each activation of this entry                                     | ❌        |
-| group           | The name of a group. Groups can be used to limit token limits within that group.                  | ✅        |
-| tags            | A list of tags used for organizational purposes. Other entries may also query these for info.     | ✅        |
-| extensions      | All unknown keys. These are preserved and can be used for plugins/extensions.                     | ✅        |
+| group           | The name of a group. Groups can be used to limit token limits within that group.                  | ✅       |
+| tags            | A list of tags used for organizational purposes. Other entries may also query these for info.     | ✅       |
+| extensions      | All unknown keys. These are preserved and can be used for plugins/extensions.                     | ✅       |

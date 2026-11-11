@@ -7,7 +7,7 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'Lorealm Docs',
-			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/withastro/starlight' }],
+			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/Lorealm/lorealm-docs' }],
 			customCss: ['./src/styles/lorealm.css'],
 			head: [
 				{ tag: 'link', attrs: { rel: 'preconnect', href: 'https://fonts.googleapis.com' } },
@@ -28,18 +28,18 @@ export default defineConfig({
 					label: 'Getting Started',
 					items: [{ autogenerate: { directory: 'getting-started' } }],
 				},
-				{
-					label: 'Weaver',
-					items: [{ autogenerate: { directory: 'weaver' } }],
-        },
         {
 					label: 'Realms',
 					items: [{ autogenerate: { directory: 'realms' } }],
 				},
         {
-					label: 'Lorebooks',
-					items: [{ autogenerate: { directory: 'lorebooks' } }],
-				},
+					label: 'Compatibility',
+					items: [{ autogenerate: { directory: 'compatibility' } }],
+        },
+        {
+  				label: 'Weaver',
+  				items: [{ autogenerate: { directory: 'weaver' } }],
+        },
 			],
 		}),
 	],

@@ -57,7 +57,7 @@ Documents function almost identically to triggers with one small nuance. While t
 Documents are defined as `[[some_id]]`, where once again, `some_id` refers to the identifier of the entry you're targeting.
 
 :::caution[For Developers]
-Triggers are not resolved automatically in `weaver_lang`. If you're implementing a Host using `weaver_lang` you need to manually keep track of and activate marked triggers.
+Documents are not resolved automatically in `weaver_lang`. If you're implementing a Host using `weaver_lang` you need to manually keep track of and activate marked triggers.
 :::
 
 ### Control Flow
@@ -85,9 +85,9 @@ But what if we need to check multiple conditions at once? Then we have the **els
 If it wasn't clear, **elif** lets you create multiple **if** statements after another. If the first is false, it tries the second one. If the second one is false, it would try the third one, and so on. Finally **else** is evaluated if every statement above fails.
 
 #### Foreach
-Foreach statments do exactly what they imply, they perform some logic for each element in a collection. Foreach blocks can only operate on array types. Here's an example of how it may be used:
+Foreach statements do exactly what they imply, they perform some logic for each element in a collection. Foreach blocks can only operate on array types. Here's an example of how it may be used:
 ```weaver
-{# foreach {{item}} in ["sword", "shield", "longbow"] #}
+{# foreach item in ["sword", "shield", "longbow"] #}
   - {{item}}
 {# endforeach #}
 ```
@@ -98,7 +98,3 @@ This code will simply list every element in the array and append a dash in front
   - longbow
 ```
 Note that the foreach expression has a unique identifier syntax: `{{item}}`. These are essentially variables without the namespace, and they only exist within the scope of the foreach block. Note that these identifiers do not support namespaces at all. If tried to write `{{char:item}}` instead of `{{item}}`, you would get an error.
-
-```weaver
-Hello {{user:name}}! @[core.weaver.rng(min: 5, max: 10)] and [[intro]].
-```

@@ -1,0 +1,80 @@
+---
+title: Installing the Plugin in Lorealm
+description: Installing the Plugin in Lorealm
+sidebar:
+  order: 5
+---
+
+For this step you'll need a running Lorealm server. If you don't have that yet, refer
+to the [Lorealm Installation Guide](/getting-started/installing). This server needs
+to be running on the same machine you're using since the server reads the Plugins
+straight from a folder on *its* disk.
+
+Open Lorealm in your client of choice (browser or desktop app), and navigate to the
+Plugins page. Once on the Plugins page, you should see a button that's labeled
+"Add from a link or file". Click it.
+
+The first textbox should be labeled "Link or folder on the server". In this field
+we will put the path to the newly created folder. I'm on Linux, so my path looks
+a little something like this:
+```
+/home/crux/<...>/programming-projects/counter
+```
+Your path will look different. Just make sure it points to the folder we just created
+using the CLI tool.
+
+Once you have your path set, you'll see a checkbox that says "For development". A
+Plugin that's marked as "for development" is reloadable. This will be very useful
+when we want to test our changes. Instead of needing to reinstall the Plugin every
+time we make a change, we simply click a refresh button in the interface. You do
+not want to be developing Plugins without it. Trust me.
+
+Check that box, then hit install. The server will now build your Plugin for you
+and install it onto the server. Keep an eye on the server's console for updates.
+
+Once it's all said and done, you'll see a message like this in your console:
+```
+2026-11-13T01:52:08.184637Z  INFO lorealm_server::services::plugins::install: installing a folder for development location=/home/crux/<...>/programming-projects/counter
+2026-11-13T01:52:08.243921Z  INFO lorealm_server::services::plugins: Installed counter@0.1.0 for development. handle=counter user_id=378952316235022336
+```
+And another, longer message in the frontend:
+```
+$ cargo build --release --target wasm32-wasip2
+    Updating crates.io index
+     Locking 34 packages to latest Rust 1.97.1 compatible versions
+   Compiling serde_core v1.0.229
+   Compiling proc-macro2 v1.0.107
+   [...]
+   Compiling wit-component v0.259.0
+   Compiling lorealm-plugin v0.1.0
+   Compiling counter v0.1.0 (/home/crux/<...>/programming-projects/counter)
+    Finished `release` profile [optimized] target(s) in 9.67s
+```
+
+That's it! We have successfully installed our brand new Plugin onto the server! You
+should now see the Plugin listed in the Plugins page. Go ahead and Enable it.
+
+If you click the Plugin row, you'll see the details page. Here you'll also see the
+button that reloads the Plugin. When I later tell you to reload the Plugin, this is
+the button you'll click. Every reload rebuilds the Plugin, so it may take a few seconds
+each time.
+
+Because we chose `inspector` earlier, the template already includes an inspector widget.
+Let's enable it.
+
+Navigate to Settings -> Inspector.
+
+If you're not familiar with this page, this is where you can customize your inspector.
+You can choose a different inspector layout per view. For now, let's add the new
+`Counter` widget to the `Write` view.
+
+At the bottom you'll see a button that says `+ Counter`. This is the one provided by
+our Plugin. Let's add that and move it to the top.
+
+If you now navigate back to the `Write` view, you'll see a new, hideous, unstyled
+HTML button in your inspector that says "Say hello". If you click that, you'll get
+some text under it that says "Hello from the backend!".
+
+Good! Everything is working so far!
+
+In the next section we'll take a look at the code. See you there!

@@ -1,0 +1,103 @@
+---
+title: Persistent Memory
+description: We make our counter remember!
+sidebar:
+  order: 7
+---
+
+Now for the final chapter in this guide, we'll explore how to persist data across
+sessions. To do this, I'll introduce you to two new functions: `persist_data()` and
+`load_data()`. These functions are the way we'll read and write data on behalf of the
+Plugin, but to do so, we need permission.
+
+If you remember the `manifest.toml` file I told you to keep in the back of your head
+in the last chapter, now's the time to return to it. We'll add the permission we need
+to read and write data:
+```diff lang="toml" title=manifest.toml
+[plugin]
+name = "Counter"
+handle = "counter"
+description = "A plugin that counts how many times you press a button."
+tags = []
+author = "crux"
+version = "0.1.0"
+# The plugin API this is built for, which is the version of `lorealm-plugin` in
+# Cargo.toml. A server only runs plugins built for its own.
+api = "0.1.0"
+-permissions = []
++permissions = ["data:persist"]
+
+[structure]
+backend = "target/wasm32-wasip2/release/counter.wasm"
+
+[build]
+backend = ["cargo", "build", "--release", "--target", "wasm32-wasip2"]
+
+[[frontend.slots]]
+slot = "inspector"
+entry = "inspector.html"
+title = "Counter"
+```
+
+Good. Now the server will know that our Plugin wants the permission to persist data,
+and will then grant us the ability to use the aforementioned functions. Let's put it
+to use:
+```diff lang="rust"
+-use lorealm_plugin::{FrontendCall, Plugin, Result, Value, json, serde_json};
++use lorealm_plugin::{FrontendCall, Plugin, Result, Value, host::{load_data, persist_data}, json, serde_json};
+use serde::Deserialize;
+
++static COUNTER_KEY: &str = "saved_count";
+
+#[derive(Deserialize)]
+struct CounterPayload {
+    by: usize,
+}
+
+/// Lives for as long as the plugin is loaded. Keep what it remembers between
+/// calls in here.
+struct Counter {
+    counter: usize,
+}
+
+impl Plugin for Counter {
+    /// Called once when the plugin is loaded.
+    fn init() -> Result<Self> {
+-        let counter = 0;
++        let counter = load_data(COUNTER_KEY)?
++            .map(|bytes| usize::from_le_bytes(bytes.try_into().unwrap()))
++            .unwrap_or(0);
+        Ok(Self { counter })
+    }
+
+    /// A call from the plugin's frontend, made with `lorealm.call(name, args)`.
+    fn frontend(&mut self, call: FrontendCall) -> Result<Value> {
+        let args: CounterPayload = serde_json::from_str(&call.args)?;
+        match call.name.as_str() {
+            "count" => {
+                self.counter += args.by;
++                persist_data(COUNTER_KEY, &self.counter.to_le_bytes())?;
+                Ok(json!(self.counter))
+            }
+            other => Err(format!("unknown call `{other}`").into()),
+        }
+    }
+}
+
+lorealm_plugin::export!(Counter);
+```
+
+That's it! If we reload our Plugin, we should now see that the counter keeps increasing
+across browser refreshes and even server restarts.
+
+:::tip
+If the label says "This plugin is not installed", you may have to restart the server
+then try again. This can happen when tinkering with the manifest.
+:::
+
+The only thing to note is that for the sake of simplicity, we use an `.unwrap()` call
+above. This is not recommended in real code, as the Plugin will crash if the operation
+fails.
+
+And that marks the end of the tutorial. I hope you enjoyed it, even if the Plugin
+itself is a little mundane. It's the process that counts! (heh)

@@ -1,0 +1,377 @@
+---
+title: Diving into the Code
+description: We explore the code within our first Lorealm Plugin
+sidebar:
+  order: 6
+---
+
+So far we've learned how to create a new project, and install that project as an
+in-development Plugin in Lorealm. Now we'll actually explore the codebase. Go ahead
+and open your Plugin in the code editor of your choice.
+
+I want to bring your attention to the `manifest.toml` file. This is the entrypoint
+of every Plugin in Lorealm. Every Plugin needs this file. The manifest defines
+what the Plugin is allowed to do, where it exists, how it's built, what other Plugins
+it's incompatible with, and much more.
+
+Your `manifest.toml` file should look a little something like this:
+```toml title=manifest.toml 
+[plugin]
+name = "Counter"
+handle = "counter"
+description = "A plugin that counts how many times you press a button."
+tags = []
+author = "crux"
+version = "0.1.0"
+# The plugin API this is built for, which is the version of `lorealm-plugin` in
+# Cargo.toml. A server only runs plugins built for its own.
+api = "0.1.0"
+permissions = []
+
+[structure]
+backend = "target/wasm32-wasip2/release/counter.wasm"
+
+[build]
+backend = ["cargo", "build", "--release", "--target", "wasm32-wasip2"]
+
+[[frontend.slots]]
+slot = "inspector"
+entry = "inspector.html"
+title = "Counter"
+```
+
+This file is what the CLI tool produced for us. For now, we won't need to change
+anything. We will come back to it later, so keep it in the back of your mind.
+
+For now, there are two files which matter to us:
+- `src/lib.rs`: This is the backend portion of the Plugin
+- `inspector.html`: This is the frontend portion of the Plugin. Remember that unstyled
+button from earlier? Yeah, that's this file.
+
+Let's fix that eyesore of a button right now, actually. Let's open the `inspector.html`
+file. We'll make it look a bit better.
+
+```diff lang="html"
+<style>
+  /* The app's style variables are available here. */
+  body {
+    margin: 0;
+    padding: var(--spacing-sm, 8px);
+    font-family: var(--font-family-body, sans-serif);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-primary);
+  }
++  button {
++      color: var(--color-text-primary);
++      background-color: var(--color-bg-elevated-2);
++      border: none;
++      border-radius: var(--radius-sm);
++      padding: var(--spacing-sm);
++  }
++  button:hover {
++      background-color: var(--color-active);
++      color: var(--color-text-accent);
++  }
+</style>
+```
+
+This just adds some simple styling to the button using Lorealm's styling variables.
+If we go ahead and reload the Plugin from the `Plugins` page and come back, we will
+see the button is already looking a fair bit prettier!
+
+Good, now we know our code actually works, and reloading the Plugin does something.
+We can head on to achieving our goal, which is to make a Plugin that *counts*.
+
+What does this Plugin actually need to do? In this section, we'll make it count.
+In the next section, we'll make it remember the count across sessions.
+
+So, our Plugin needs to follow these steps:
+1. When the user clicks the button in the inspector, we send a message to the backend
+portion of the Plugin
+2. The backend reads this and increments a variable, then sends the result back to the
+frontend
+3. The frontend takes that result and displays it.
+
+Simple, right?
+
+Let's start by setting up the code that will send the message to the backend. We're
+actually already 90% there! If you scroll to the bottom of the `inspector.html` file,
+you'll see a `<script>` section. This is where HTML runs JavaScript, and where the
+message will be sent. There is in fact already a message being sent. We just need
+to make a few tweaks:
+```diff lang="html"
+<script>
+  // `lorealm.call` reaches this plugin's own backend, in `frontend`.
+  document.getElementById('hello').onclick = async () => {
+  const answer = document.getElementById('answer');
+  try {
+-      answer.textContent = await lorealm.call('hello');
++      answer.textContent = await lorealm.call('count', { by: 1 });
+    } catch (e) {
+      answer.textContent = e.message;
+    }
+  };
+</script>
+```
+
+All we did was change the parameters of the `lorealm.call()` function. Instead of
+passing it just `hello`, we're now passing it a new message called `count`, along
+with a *payload*, which is just some data. We'll use this data in the backend to
+determine how much to increment the counter by.
+
+That's it for the frontend! Let's move on to the backend. Open the file located at
+`src/lib.rs`. You'll see something like this:
+```rust
+use lorealm_plugin::{FrontendCall, Plugin, Result, Value, json};
+
+/// Lives for as long as the plugin is loaded. Keep what it remembers between
+/// calls in here.
+struct Counter;
+
+impl Plugin for Counter {
+    /// Called once when the plugin is loaded.
+    fn init() -> Result<Self> {
+        Ok(Self)
+    }
+
+    /// A call from the plugin's frontend, made with `lorealm.call(name, args)`.
+    fn frontend(&mut self, call: FrontendCall) -> Result<Value> {
+        match call.name.as_str() {
+            "hello" => Ok(json!("Hello from the backend!")),
+            other => Err(format!("unknown call `{other}`").into()),
+        }
+    }
+}
+
+lorealm_plugin::export!(Counter);
+```
+
+The things to pay attention to are the two functions `init()` and `frontend()`. These
+are *Plugin hooks*. The server hands data through these hooks every time something
+happens. For these hooks specifically:
+- `init()` is called once when the Plugin is loaded
+- `frontend()` is called every time the frontend sends a message to the backend
+
+In the backend, the logic is simple. We want to initialize a variable once on
+startup, then increment this variable every time the frontend asks us to. Let's
+start by adding a variable to the Plugin:
+```diff lang="rust"
+- struct Counter;
++ struct Counter {
++     counter: usize
++ }
+
+impl Plugin for Counter {
+    /// Called once when the plugin is loaded.
+    fn init() -> Result<Self> {
+-         Ok(Self)
++         let counter = 0;
++         Ok(Self {counter})
+    }
+
+    /// A call from the plugin's frontend, made with `lorealm.call(name, args)`.
+    fn frontend(&mut self, call: FrontendCall) -> Result<Value> {
+        match call.name.as_str() {
+            "hello" => Ok(json!("Hello from the backend!")),
+            other => Err(format!("unknown call `{other}`").into()),
+        }
+    }
+}
+```
+
+This code initializes the counter variable once during the initialization step.
+Next we want to increment the variable every time we receive the `count` message:
+
+```diff lang="rust"
+struct Counter {
+    counter: usize
+}
+
+impl Plugin for Counter {
+    /// Called once when the plugin is loaded.
+    fn init() -> Result<Self> {
+        let counter = 0;
+        Ok(Self {counter})
+    }
+
+    /// A call from the plugin's frontend, made with `lorealm.call(name, args)`.
+    fn frontend(&mut self, call: FrontendCall) -> Result<Value> {
+        match call.name.as_str() {
+-            "hello" => Ok(json!("Hello from the backend!")),
++            "count" => {
++                self.counter += 1;
++                Ok(json!(self.counter))
++            }
+            other => Err(format!("unknown call `{other}`").into()),
+        }
+    }
+}
+```
+
+That's it! If we now go ahead and reload the Plugin and test it, we'll see that
+the label increases by 1 every time we click the button. Cool! However, we're
+not quite done. The ones with a keen eye will have noticed that we're increasing
+the counter by a static value:
+```
+self.counter += 1;
+```
+But we wanted it to use the number sent in the payload... Let's fix that. The quickest
+way is to parse the arguments into a generic `Value` and read `by` from it:
+```diff lang="rust"
++ use lorealm_plugin::serde_json;
+
+fn frontend(&mut self, call: FrontendCall) -> Result<Value> {
+
+    match call.name.as_str() {
+        "count" => {
++            let args: Value = serde_json::from_str(&call.args)?;
+-            self.counter += 1;
++            self.counter += args["by"].as_i64().unwrap() as usize;
+            Ok(json!(self.counter))
+        }
+        other => Err(format!("unknown call `{other}`").into()),
+    }
+}
+```
+
+This code does a lot of ugly conversions, and the Plugin will actually crash if
+it's handed something that's not a number in `by`. For a test Plugin this is fine. You
+can reload the Plugin, and try it. It'll work, but it's far from best practice.
+
+The current code will work fine for the sake of the guide. One last
+thing you can do before moving on however is checking whether the payload is actually
+considered. Go back to `inspector.html` and change the `by` value to another number:
+```diff lang=js
+-answer.textContent = await lorealm.call('count', { by: 1 });
++answer.textContent = await lorealm.call('count', { by: 2 });
+```
+When you now rebuild the Plugin and try again, you should see the counter increment
+by 2 each time.
+
+For a real Plugin, we'll want to fix the problems with the code above. The rest of
+this section will focus on that. This step is optional and is not strictly required,
+so feel free to skip to the next section.
+
+## Optional: parsing the payload with serde
+
+Now for how to fix it cleanly. This is what you'll want to do when writing an actual
+Plugin. Open your console in the Plugin directory and run this command:
+```sh
+cargo add serde -F derive
+```
+This will add `serde` as a dependency with the `derive` feature enabled.
+`serde` is a Rust library which makes it very easy and ergonomic to handle conversions
+between Rust structs and serialized formats (JSON in our case). All we need to do is
+create a struct that mirrors the payload's format. Add this at the top of your file:
+```diff lang="rust"
++use serde::Deserialize;
++
++#[derive(Deserialize)]
++struct CounterPayload {
++    by: usize
++}
+```
+
+Then instead of parsing to an arbitrary `serde_json::Value` type, we can parse directly
+into the type of our struct:
+```diff lang="rust"
+fn frontend(&mut self, call: FrontendCall) -> Result<Value> {
+    match call.name.as_str() {
+        "count" => {
+-            let args: Value = serde_json::from_str(&call.args)?;
++            let args: CounterPayload = serde_json::from_str(&call.args)?;
+-            self.counter += args["by"].as_i64().unwrap() as usize;
++            self.counter += args.by;
+            Ok(json!(self.counter))
+        }
+        other => Err(format!("unknown call `{other}`").into()),
+    }
+}
+```
+
+This gives us error handling for free, and the code reads very cleanly!
+
+That about wraps it up for this chapter. See you in the next chapter to make the
+Plugin *remember*!
+
+Here's the final files for this chapter in case you want to compare notes:
+```rust title=src/lib.rs
+use lorealm_plugin::{FrontendCall, Plugin, Result, Value, json, serde_json};
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct CounterPayload {
+    by: usize,
+}
+
+/// Lives for as long as the plugin is loaded. Keep what it remembers between
+/// calls in here.
+struct Counter {
+    counter: usize,
+}
+
+impl Plugin for Counter {
+    /// Called once when the plugin is loaded.
+    fn init() -> Result<Self> {
+        let counter = 0;
+        Ok(Self { counter })
+    }
+
+    /// A call from the plugin's frontend, made with `lorealm.call(name, args)`.
+    fn frontend(&mut self, call: FrontendCall) -> Result<Value> {
+        match call.name.as_str() {
+            "count" => {
+                let args: CounterPayload = serde_json::from_str(&call.args)?;
+                self.counter += args.by;
+                Ok(json!(self.counter))
+            }
+            other => Err(format!("unknown call `{other}`").into()),
+        }
+    }
+}
+
+lorealm_plugin::export!(Counter);
+```
+```html title=frontend/inspector.html
+<!doctype html>
+<html>
+  <head>
+    <style>
+      /* The app's style variables are available here. */
+      body {
+        margin: 0;
+        padding: var(--spacing-sm, 8px);
+        font-family: var(--font-family-body, sans-serif);
+        font-size: var(--font-size-sm);
+        color: var(--color-text-primary);
+      }
+      button {
+          color: var(--color-text-primary);
+          background-color: var(--color-bg-elevated-2);
+          border: none;
+          border-radius: var(--radius-sm);
+          padding: var(--spacing-sm);
+      }
+      button:hover {
+          background-color: var(--color-active);
+          color: var(--color-text-accent);
+      }
+    </style>
+  </head>
+  <body>
+    <button id="hello" type="button">Count</button>
+    <p id="answer"></p>
+    <script>
+      // `lorealm.call` reaches this plugin's own backend, in `frontend`.
+      document.getElementById('hello').onclick = async () => {
+        const answer = document.getElementById('answer');
+        try {
+          answer.textContent = await lorealm.call('count', { by: 2 });
+        } catch (e) {
+          answer.textContent = e.message;
+        }
+      };
+    </script>
+  </body>
+</html>
+```

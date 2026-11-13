@@ -1,0 +1,152 @@
+---
+title: Installing Dependencies
+description: Installing the dependencies you need for Lorealm Plugin Development
+sidebar:
+  order: 3
+---
+
+To program a Plugin in Lorealm, we will need to download Rust, along with an optional but
+recommended tool developed by us called `lorealm-plugin-cli`.
+
+## Installing Rust
+Lorealm Plugins are written in Rust. The recommended way to install Rust is through
+`rustup`, the official Rust toolchain installer. It installs the Rust compiler (`rustc`),
+Rust's package manager (`cargo`), and makes it easy to keep everything up-to-date.
+
+### Linux & macOS
+Open a terminal and run:
+```sh
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+Follow the on-screen prompts. The default options are fine for most people. When it's
+done, restart your terminal (or run `source "$HOME/.cargo/env"`) so the new commands
+are available.
+
+:::note
+Some Linux distributions also ship Rust through their package manager. These versions
+are often outdated, so we recommend using `rustup` instead.
+:::
+
+### Windows
+1. Download and run `rustup-init.exe` from the
+<a href="https://rust-lang.org/tools/install/" target="_blank" rel="noopener noreferrer">official installation page</a>
+2. If prompted, let the installer set up the Visual Studio C++ Build Tools. Rust needs
+these to build programs on Windows.
+3. Follow the on-screen prompts. The default options are fine for most people.
+4. Restart your terminal once the installation is complete.
+
+### Verifying the installation
+To make sure everything worked, run:
+```sh
+rustc --version
+cargo --version
+```
+Both commands should print a version number. If you get a "command not found" error,
+try restarting your terminal, or your computer.
+
+### Keeping Rust up-to-date
+Rust releases a new stable version every six weeks. You can update at any time with:
+```sh
+rustup update
+```
+
+If you run into any trouble, <a href="https://rust-lang.org/tools/install/" target="_blank" rel="noopener noreferrer">refer to the official installation guide</a>.
+
+## Installing the CLI tool
+To make our lives as Plugin developers easier, we maintain a CLI tool called
+`lorealm-plugin-cli`. It boils writing, building, and publishing Plugins down to a
+handful of commands.
+
+To install `lorealm-plugin-cli`, use this command (this requires Rust and Cargo to be
+installed):
+```sh
+cargo install lorealm-plugin-cli
+```
+
+If you installed Rust correctly, everything should be ready. You should now be able to
+run the following command in your console:
+```sh
+lorealm-plugin doctor
+```
+
+:::tip
+If your terminal tells you the command was not found, closing and reopening your
+terminal may work. If not, restarting your machine should almost certainly fix it.
+:::
+
+If you've just installed Rust, you should see a message that says:
+```
+The Rust target `wasm32-wasip2` isn't installed. Add it with `rustup target add wasm32-wasip2`, or `lorealm-plugin doctor --fix`
+```
+That's perfect. Everything is working as expected. If it instead says "Everything for
+building and releasing Plugins is installed.", you can skip the next command and head
+to the next section.
+
+To fix the message above, simply run:
+```sh
+lorealm-plugin doctor --fix
+```
+
+This will take a moment to install the compilation target we'll need to build our
+Plugin later. Once that finishes, try running `lorealm-plugin doctor` again. You
+should now see that everything works as expected. If that's the case, head on to the
+next section.
+
+If you're still having trouble, see the troubleshooting section below.
+
+## Troubleshooting
+### "git isn't installed. `stage` and `publish` need it"
+If you get this error, it means `git` is not installed on your machine. We won't
+need it in this guide, but if you ever want to publish your Plugin, you'll need it.
+
+#### Installing git
+**Linux**
+
+Install `git` through your distribution's package manager:
+```sh
+# Debian / Ubuntu
+sudo apt install git
+
+# Fedora
+sudo dnf install git
+
+# Arch
+sudo pacman -S git
+```
+
+**macOS**
+
+Run the following command and follow the prompts. It installs Apple's Command Line Tools,
+which include `git`:
+```sh
+xcode-select --install
+```
+If you use <a href="https://brew.sh/" target="_blank" rel="noopener noreferrer">Homebrew</a>,
+you can run `brew install git` instead.
+
+**Windows**
+
+Download and run the installer from the
+<a href="https://git-scm.com/downloads/win" target="_blank" rel="noopener noreferrer">official git website</a>.
+The default options are fine for most people. Alternatively, you can install it with
+`winget`:
+```sh
+winget install --id Git.Git -e --source winget
+```
+
+**Verifying the installation**
+
+Restart your terminal, then run:
+```sh
+git --version
+```
+It should print a version number.
+
+The first time you use `git`, it's a good idea to tell it who you are. This name and
+email will be attached to any commits you make:
+```sh
+git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
+```
+
+Once that's done, run `lorealm-plugin doctor` again to confirm the error is gone.

@@ -1,0 +1,70 @@
+---
+title: Creating a project
+description: Creating your Plugin project using lorealm-plugin-cli
+sidebar:
+  order: 4
+---
+
+Now that we've got the boring stuff out of the way, it's time to finally create our
+project!
+
+To get started, open a terminal and run:
+```sh
+lorealm-plugin new
+```
+:::tip
+The project is created in a new folder inside your terminal's current directory,
+so cd to wherever you keep your projects first.
+:::
+
+The tool will now ask you some questions about your Plugin. Here's a brief breakdown of
+what each question means:
+1. **Name:** This is the human-readable name of your Plugin. It's the name shown in
+Lorealm, and in the Marketplace if you ever publish it. I will name my Plugin
+"Counter", but you can pick whichever name you'd like.
+2. **Handle:** This is what the server calls the Plugin under the hood. These names
+have to be unique. No two Plugins on the same server can share a handle. Leaving it on
+the default is fine for now. Press Enter to select the default value, or enter your own.
+3. **Description:** As the name suggests, this is a small description for your Plugin.
+This will be displayed on the Plugin page, as well as on the Marketplace. Let's keep it
+simple: "A plugin that counts how many times you press a button."
+4. **Author:** This is the name of the person who wrote the Plugin. In this case, you.
+If you see a default value here, that's the name you use in `git`. Leaving it at that
+is fine. The author field won't matter for this tutorial. It only matters if you plan
+to publish your Plugin.
+5. **Hooks to handle:** These are just options that will generate some extra code later.
+We won't be using any of these hooks in this tutorial. Press Enter to continuewithout
+any selections.
+6. **Where it appears in the client:** As the question asks, this is where the Plugin's
+HTML code will attach itself. We want an inspector widget, so we'll select `inspector`.
+7. **Give it settings the user can fill in?:** This just creates a `settings.wtn` file
+with a default value. For this guide, we won't be using it. Press Enter to decline.
+8. **License:** This creates a `LICENSE` file. These are needed if you ever want to
+publish your Plugin to the Marketplace. The MIT license lets people use, modify and share
+your code freely, as long as they keep your copyright notice. It's a sensible default,
+so let's go with that for now. If you'd rather leave the license out, you can select
+`None`. It won't make a difference in this guide.
+
+You should now see something like this in the terminal:
+```
+>lorealm-plugin new
+> Name Counter
+> Handle (its unique identifier) counter
+> Description, in a sentence A plugin that counts how many times you press a button.
+> Author crux
+> Hooks to handle 
+> Where it appears in the client inspector: a widget in the inspector
+> Give it settings the user can fill in? No
+> License MIT: do anything, keep the notice
+Created Counter in counter
+Build it with `lorealm-plugin build` within the folder.
+```
+
+That's it! You have now created your first Plugin project! Before we continue to the
+next section, make sure you have a program for editing code. While writing this guide
+I used <a href="https://zed.dev/" target="_blank" rel="noopener noreferrer">Zed</a>,
+but the procedure will be identical with any code editor you use. Even Notepad works
+(though I would not recommend it lol).
+
+The project is in a new counter folder. Run `cd counter` and then `pwd` (or `cd` on its
+own on Windows) and copy the full path. You'll need it next.

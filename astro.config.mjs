@@ -37,6 +37,10 @@ export default defineConfig({
 					items: [{ autogenerate: { directory: 'compatibility' } }],
         },
         {
+  				label: 'Plugins',
+  				items: [{ autogenerate: { directory: 'plugins' } }],
+        },
+        {
   				label: 'Weaver',
   				items: [{ autogenerate: { directory: 'weaver' } }],
         },

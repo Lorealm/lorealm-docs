@@ -1,0 +1,93 @@
+---
+title: About Plugins
+description: A brief explanation on how Plugins in Lorealm work
+sidebar:
+  order: 1
+---
+
+In Lorealm, Plugins are a core concept, and every part of Lorealm has been designed
+with the Plugin system in mind, from day one.
+
+Lorealm's Plugin System is designed to be secure and versatile. What this means in
+practice is that any Plugin you run on your server has no access to your system.
+
+Alternatives such as <a href="https://github.com/sillytavern/SillyTavern" target="_blank" rel="noopener noreferrer">SillyTavern</a>
+achieve Plugin support by simply injecting arbitrary code into the process. While
+that's very versatile and easy to work with, it leaves the user's door wide open
+to attacks. It only takes *one* bad actor to ruin all the fun.
+
+## The Plugin Architecture
+In short, a Lorealm Plugin comes in two parts. The backend Plugin, and the frontend
+Plugin. The backend Plugin runs on the server, while the frontend Plugin runs in the
+user's browser or desktop app.
+
+The two halves of the same Plugin share a channel they can use to communicate with
+each other over the network boundary.
+
+In general, a backend Plugin is used for anything that requires more advanced logic
+and/or processing requirements. If you see a Plugin that adds something new to the
+server, such as a new type of API key, a Context Template Node, or something else,
+that's always from a Plugin running on the server. These Plugins are usually safe
+to run, with the only exception being Plugins that ask to access the internet.
+
+A frontend Plugin is used to display something visually in the client. While it
+can technically be doing a lot, it shouldn't need to. As a rule of thumb: a frontend
+Plugin should only be responsible for displaying something visually or passing on
+interaction messages to the backend portion of the Plugin.
+
+## The Plugin Marketplace
+Plugins in the official marketplace are reviewed by the Lorealm maintainers before
+they're listed, and each new version is reviewed before it's published. Review catches
+a lot, but it's done by people and can miss things. The real protection is the sandbox
+described below, which applies to every Plugin no matter where it came from. Be
+especially careful with Plugins that ask for internet access or are marked unsafe.
+
+:::caution
+Lorealm supports adding multiple Marketplace indexers. Only the official index is
+reviewed by maintainers.
+:::
+
+You can access this marketplace directly from within the Lorealm app by navigating
+to: Plugins -> Marketplace.
+
+Every Plugin, and every version in this marketplace has been audited for malicious
+intent. Though beware that human error does exist. Trust your own instincts before
+installing anything first and foremost.
+
+### Contribution
+If you think you have a Plugin that could be useful to the community, please
+consider adding it to the marketplace. The instructions to do so can be found
+in the <a href="https://github.com/Lorealm/lorealm-plugin-marketplace" target="_blank" rel="noopener noreferrer">Marketplace's GitHub Repository.</a>
+
+## Security Measures
+To prevent the sorts of attacks that steal sensitive data such as API keys, and the
+like, we utilize sandboxing wherever possible. For the less technically inclined,
+a sandbox is when we isolate a process from the rest of your machine, and only let it
+talk to highly fine-grained channels that we have full control over.
+
+On the backend, which is an executable running directly on your machine, a Plugin
+never has access to your file system or the internet. The only way a Plugin can
+access the internet is by asking to reach specific addresses, then go through our
+own security systems to make requests to those addresses.
+
+On the frontend, it's much of the same. Plugins are sandboxed by default. However,
+on the frontend there are certain tasks that require **direct** access to the application.
+
+### Unsafe Plugins
+These are called *unsafe Plugins*. Unsafe Plugins only exist on the frontend, and there
+are no guarantees they can be run safely. Don't worry, you can't install an unsafe
+Plugin by accident. To install an unsafe Plugin in Lorealm, you need to:
+1. A Plugin declares itself unsafe through a `ui:unsafe` permission
+2. Have a role with the `UNSAFE_PLUGINS` permission. Even the `ADMINISTRATOR`
+permission does not have this by default. It needs to be enabled explicitly for
+everyone.
+3. Actually install the unsafe Plugin
+
+In general, it's advised to take extreme care when installing an unsafe Plugin from
+someone you don't know. If the Plugin description does not provide a clear reason as
+to why the Plugin has to be unsafe, it's better to avoid it.
+
+## What's next
+The rest of this section is focused on developing your own Plugins and contains more
+technical details. If you simply wanted an overview on how Plugins work, then the 
+following sections won't be of much use to you.

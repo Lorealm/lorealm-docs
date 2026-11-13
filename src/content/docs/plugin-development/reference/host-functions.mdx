@@ -1,0 +1,420 @@
+---
+title: Host Functions
+description: Reference for Lorealm's host functions
+---
+
+| Function | Description | Required Permission |
+|----------|-------------|---------------------|
+| [`log`](#log) | Writes to the plugin's log. Stdout and stderr are also captured as `info` and `warn` lines | None |
+| [`register-hook`](#register-hook) | Subscribes to a hook. Errors if the manifest lacks the hook's permission | None |
+| [`register-command`](#register-command) | Registers a Weaver Command. Calls arrive in `handle` as a `command` event. Can only be called during `init()` | None |
+| [`register-processor`](#register-processor) | Registers a Weaver Processor. Calls arrive in `handle` as a `processor` event. Can only be called during `init()` | None |
+| [`register-source-node`](#register-source-node) | Registers a Source Node. Resolution arrives in `handle` as a `source` event. Can only be called during `init()` | None |
+| [`emit`](#emit) | Emits data to a topic channel. Other Plugins may receive it with `subscribe` | None |
+| [`subscribe`](#subscribe) | Subscribes to a topic channel. Messages arrive in `handle` as `custom` events | None |
+| [`unsubscribe`](#unsubscribe) | Unsubscribes from a topic channel | None |
+| [`send-frontend`](#send-frontend) | Sends a payload to the frontend portion of this Plugin | None |
+| [`active-persona`](#active-persona) | Retrieves the user's active persona | `persona:read` |
+| [`settings`](#settings) | Retrieves the user's settings for this Plugin as a JSON object | None |
+| [`http-fetch`](#http-fetch) | Sends an HTTP request through the host | `net:fetch` |
+| [`messages`](#messages) | Retrieves messages from a conversation's active branch | `chat:read` |
+| [`generate`](#generate) | Sends an LLM completion request on the user's behalf | `model:generate` |
+| [`persist-data`](#persist-data) | Stores bytes under a key in the server's configured storage | `data:persist` |
+| [`load-data`](#load-data) | Loads the bytes (if any) stored under a key | `data:persist` |
+| [`delete-data`](#delete-data) | Deletes the data (if any) stored under a key | `data:persist` |
+
+## Per-function Documentation
+
+All fallible functions return `result<_, string>`, where the error string describes what went wrong.
+
+### `log`
+
+Writes to the plugin's log, which the user can read. Stdout and stderr are also captured, as `info` and `warn` lines.
+
+**Permission:** None
+
+```wit
+log: func(level: level, message: string)
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `level` | [`level`](#level) | The level to log at |
+| `message` | `string` | The text to log |
+
+**Returns:** Nothing
+
+### `register-hook`
+
+Subscribes the plugin to a hook. Hook events are delivered to `handle`.
+
+**Permission:** None, but each hook may require its own (see [`hook`](#hook))
+
+```wit
+register-hook: func(hook: hook) -> result<_, string>
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `hook` | [`hook`](#hook) | The hook to subscribe to |
+
+**Errors:** If the manifest lacks the hook's permission.
+
+### `register-command`
+
+Registers a Weaver command, called as `$[handle.name(args)]`. Calls arrive in `handle` as a `command` event.
+
+**Permission:** None
+
+```wit
+register-command: func(command: command-signature) -> result<_, string>
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `command` | [`command-signature`](#command-signature) | The command's name, parameters and return type |
+
+:::note
+Can only be called during `init`.
+:::
+
+### `register-processor`
+
+Registers a Weaver processor, called as `@[handle.name(properties)]`. Calls arrive in `handle` as a `processor` event.
+
+**Permission:** None
+
+```wit
+register-processor: func(processor: processor-signature) -> result<_, string>
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `processor` | [`processor-signature`](#processor-signature) | The processor's name, properties and return type |
+
+:::note
+Can only be called during `init`.
+:::
+
+### `register-source-node`
+
+Adds a node to the plugin's context template source. Resolution arrives in `handle` as a `source` event.
+
+**Permission:** None
+
+```wit
+register-source-node: func(node: source-node) -> result<_, string>
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `node` | [`source-node`](#source-node) | The node to add |
+
+:::note
+Can only be called during `init`.
+:::
+
+### `emit`
+
+Emits a payload into a topic channel. Other plugins can receive it with [`subscribe`](#subscribe).
+
+**Permission:** None
+
+```wit
+emit: func(topic: string, payload: json) -> result<_, string>
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `topic` | `string` | The topic to emit into |
+| `payload` | `json` | The data to send |
+
+### `subscribe`
+
+Receives events emitted under a topic as `custom` events in `handle`, until the plugin is unloaded.
+
+**Permission:** None
+
+```wit
+subscribe: func(topic: string) -> result<_, string>
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `topic` | `string` | The topic to subscribe to, as `handle.name` |
+
+:::tip
+Subscribe during `init` to keep the subscription across reloads.
+:::
+
+### `unsubscribe`
+
+Stops receiving events emitted under a topic.
+
+**Permission:** None
+
+```wit
+unsubscribe: func(topic: string) -> result<_, string>
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `topic` | `string` | The topic to unsubscribe from |
+
+### `send-frontend`
+
+Sends a payload to the plugin's own frontend.
+
+**Permission:** None
+
+```wit
+send-frontend: func(name: string, payload: json) -> result<_, string>
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `name` | `string` | The message name the frontend receives |
+| `payload` | `json` | The data to send |
+
+### `active-persona`
+
+Retrieves the user's active persona.
+
+**Permission:** `persona:read`
+
+```wit
+active-persona: func() -> result<persona, string>
+```
+
+**Returns:** [`persona`](#persona)
+
+### `settings`
+
+Retrieves the user's settings for this plugin.
+
+**Permission:** None
+
+```wit
+settings: func() -> result<json, string>
+```
+
+**Returns:** The settings as a single JSON object.
+
+### `http-fetch`
+
+Sends an HTTP request and waits for the whole response. Redirects are not followed. Time spent waiting doesn't count toward the call's limit.
+
+**Permission:** `net:fetch`
+
+```wit
+http-fetch: func(request: http-request) -> result<http-response, string>
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `request` | [`http-request`](#http-request) | The request to send |
+
+**Returns:** [`http-response`](#http-response)
+
+### `messages`
+
+Retrieves messages from a conversation's active branch, oldest first.
+
+**Permission:** `chat:read`
+
+```wit
+messages: func(conversation: s64, range: message-range) -> result<list<chat-message>, string>
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `conversation` | `s64` | The conversation's ID |
+| `range` | [`message-range`](#message-range) | Which messages to read |
+
+**Returns:** `list<`[`chat-message`](#chat-message)`>`
+
+### `generate`
+
+Sends a completion request through one of the user's connection profiles.
+
+**Permission:** `model:generate`
+
+```wit
+generate: func(messages: list<message>, profile: option<s64>) -> result<string, string>
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `messages` | `list<`[`message`](#message)`>` | The prompt |
+| `profile` | `option<s64>` | The connection profile to use, or `none` for the active one |
+
+**Returns:** The model's reply.
+
+:::caution
+This may cost the user money. Use it sparingly.
+:::
+
+### `persist-data`
+
+Stores bytes under a key for the current user.
+
+**Permission:** `data:persist`
+
+```wit
+persist-data: func(key: string, value: list<u8>) -> result<_, string>
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `key` | `string` | The key to store under |
+| `value` | `list<u8>` | The data to store |
+
+### `load-data`
+
+Reads what [`persist-data`](#persist-data) stored under a key.
+
+**Permission:** `data:persist`
+
+```wit
+load-data: func(key: string) -> result<option<list<u8>>, string>
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `key` | `string` | The key to read |
+
+**Returns:** The stored bytes, or `none` if nothing is stored.
+
+### `delete-data`
+
+Removes a key and its data.
+
+**Permission:** `data:persist`
+
+```wit
+delete-data: func(key: string) -> result<_, string>
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `key` | `string` | The key to remove |
+
+## Types
+
+### `json`
+
+A `string` holding JSON text. WIT has no recursive types, so Weaver values are passed this way.
+
+### `level`
+
+`trace`, `debug`, `info`, `warn` or `error`.
+
+### `hook`
+
+| Hook | Required Permission |
+|------|---------------------|
+| `prompt-build` | `prompt:write` |
+| `after-generate` | `chat:read` |
+| `message-finalize` | `chat:write` |
+| `user-message` | `chat:write` |
+| `lorebook-activate` | `prompt:write` |
+| `tool-call` | `tools:write` |
+| `tool-result` | `tools:write` |
+| `turn-start` | `chat:read` |
+| `turn-end` | `chat:read` |
+| `upgrade` | None |
+| `settings-changed` | None |
+| `shutdown` | None |
+
+### `role`
+
+`system`, `user` or `assistant`.
+
+### `message`
+
+| Field | Type |
+|-------|------|
+| `role` | [`role`](#role) |
+| `content` | `string` |
+
+### `chat-message`
+
+A message saved in a conversation.
+
+| Field | Type |
+|-------|------|
+| `id` | `s64` |
+| `role` | [`role`](#role) |
+| `content` | `string` |
+
+### `message-range`
+
+| Case | Description |
+|------|-------------|
+| `all` | Every message on the branch |
+| `latest(u32)` | The newest `n` messages |
+
+### `persona`
+
+| Field | Type |
+|-------|------|
+| `name` | `string` |
+| `description` | `string` |
+
+### `value-type`
+
+`string`, `number`, `bool`, `array`, `object`, `none` or `any`.
+
+### `param`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | `string` | |
+| `description` | `string` | |
+| `value-type` | `option<`[`value-type`](#value-type)`>` | `none` accepts any type |
+| `required` | `bool` | |
+
+### `command-signature`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | `string` | |
+| `description` | `string` | One line, imperative, no trailing period |
+| `returns` | [`value-type`](#value-type) | |
+| `params` | `list<`[`param`](#param)`>` | |
+| `mutates-context` | `bool` | Whether the command may write variables through its context |
+
+### `processor-signature`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | `string` | |
+| `description` | `string` | One line, imperative, no trailing period |
+| `returns` | [`value-type`](#value-type) | |
+| `properties` | `list<`[`param`](#param)`>` | |
+
+### `source-node`
+
+| Field | Type |
+|-------|------|
+| `id` | `string` |
+| `title` | `string` |
+| `description` | `string` |
+| `icon` | `option<string>` |
+
+### `http-request`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `method` | `string` | Such as `GET` or `POST` |
+| `url` | `string` | Its host must be listed in the manifest's `[network] hosts` |
+| `headers` | `list<tuple<string, string>>` | A value may contain `{secret:name}`, where `name` is an API key setting. The host inserts the user's key there |
+| `body` | `option<list<u8>>` | |
+
+### `http-response`
+
+| Field | Type |
+|-------|------|
+| `status` | `u16` |
+| `headers` | `list<tuple<string, string>>` |
+| `body` | `list<u8>` |

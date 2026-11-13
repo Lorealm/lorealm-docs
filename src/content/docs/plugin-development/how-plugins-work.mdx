@@ -1,0 +1,55 @@
+---
+title: How Plugins Work
+description: A technical overview on how Plugins work
+sidebar:
+  order: 3
+---
+## Understanding the Plugin Structure
+Plugins in Lorealm are split into two main parts. The frontend widgets and the backend
+Plugin. This has already been explained in the [introduction section](/plugins/about).
+
+:::note
+In this section, we'll go into more technical detail. If you just want a high-level
+overview, check out the introduction instead.
+:::
+
+### The Backend Plugin
+This is the main driver. This is a sandboxed Plugin running on the Lorealm server.
+This Plugin is a WASM module that's downloaded/compiled through the server, then
+ran through a <a href="https://wasmtime.dev/" target="_blank" rel="noopener noreferrer">wasmtime</a>
+container.
+
+In pratice, running WASM modules instead of native code modules means:
+- We have access to native sandboxing on all platforms
+- Plugin Authors can write Plugins in any language that compiles to WASM, some common
+examples being: Rust, Python, C, C++, Go, C#, Kotlin, Zig and more.
+- We can fine-grain access to network, file systems, memory consumption and more.
+
+#### wasmtime + WIT
+As mentioned, we use the <a href="https://wasmtime.dev/" target="_blank" rel="noopener noreferrer">wasmtime</a>
+runtime to manage our WASM Plugins. This is a well-proven and battle-tested approach,
+and was the most well-suited library to preserve a good mix of flexibility and security.
+
+To generate the contract between host and client processes, we use the WIT (webassembly
+interface type) language, which is a small programming language meant to generate this
+very type of contract. This allows us to easily version, package and distribute Plugin
+APIs as we move forward in development.
+
+#### Hooks and Host Commands
+There are two ways of interacting with the server through a Plugin. While each of these
+are big enough topics to have their own page (which they do), we'll provide an abstract
+definition of what these are, and when to use them.
+
+##### Hooks
+Hooks are used for when you want something to happen relative to an event in the server.
+Something common Plugin authors may want to do is execute some logic every time the user
+sends a message. A hook allows you to register that intent, and the server will pass
+data to that hook whenever processing the event that you're targeting. Lorealm v0.1.0
+ships with 12 seperate hooks, and more will come in the future.
+
+##### Host Commands
+Host Commands/Host Functions are functions you call from your Plugin on demand. These
+functions can be used at any time, and are not confined to any schedule. Things such
+as saving data, retrieving user settings, requesting conversation data and more all go
+through these Host Commands. Lorealm v0.1.0 currently have 17 different host functions.
+Again, these will grow in number as development continues.

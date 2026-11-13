@@ -1,0 +1,122 @@
+---
+title: manifest.toml
+description: Reference for the plugin manifest
+---
+The `manifest.toml` file is the entrypoint of every Plugin in Lorealm. It contains a
+declaration about what the Plugin is, who wrote it, what permissions it needs, when it
+should load, and more.
+
+An example `manifest.toml` file may look like this (taken from the guide):
+```toml title="manifest.toml"
+[plugin]
+name = "Counter"
+handle = "counter"
+description = "A plugin that counts how many times you press a button."
+tags = []
+author = "crux"
+version = "0.1.0"
+api = "0.1.0"
+permissions = ["data:persist"]
+
+[structure]
+backend = "target/wasm32-wasip2/release/counter.wasm"
+
+[build]
+backend = ["cargo", "build", "--release", "--target", "wasm32-wasip2"]
+
+[[frontend.slots]]
+slot = "inspector"
+entry = "inspector.html"
+title = "Counter"
+```
+
+## Sections
+| Section | Contains |
+|-------|-------------|
+| plugin | The plugin's metadata, permissions and versioning details |
+| compatibility | compatibility details for other plugins. |
+| structure | Information on where to find files relative to the manifest's location |
+| frontend | Information on where to find frontend widgets, and which widgets are available |
+| build | Information on how to build the plugin |
+| definition | Custom types defined by a plugin |
+| network | Information on what network addresses the plugin wants to reach |
+| provides | Information on data exported by this Plugin, which are accessible to other plugins |
+
+## Fields
+| Section | Field | Description | Possible Values | Required |
+|---------|-------|-------------|-----------------|----------|
+| plugin | name | The human-readable name | Any string\* | ✅ |
+| plugin | handle | The unique identifier | Any string\* | ✅ |
+| plugin | description | A brief description | Any string\* | ✅** |
+| plugin | tags | A list of tags used on the marketplace | Any list of strings\* | ❌ |
+| plugin | author | The main author | Any string\* | ✅** |
+| plugin | version | The version number | [SemVer](#semver) string | ✅ |
+| plugin | api | The API version built against | [SemVer](#semver) string | ✅ |
+| plugin | permissions | The list of permissions the Plugin wants | A list of [permissions](/plugin-development/reference/permissions) | ❌ |
+| compatibility | loaded_before | The list of Plugins this Plugin must load before | A list of Plugin handles | ❌ |
+| compatibility | loaded_after | The list of Plugins this Plugin must load after | A list of Plugin handles | ❌ |
+| compatibility | requires | The list of Plugins this Plugin requires to run | A list of Plugin handles | ❌ |
+| compatibility | recommends | A list of Plugins this Plugin recommends to install along with itself | A list of Plugin handles | ❌ |
+| compatibility | conflicts | A list of Plugins this Plugin can't run alongside | A list of Plugin handles | ❌ |
+| structure | backend | The path to the compiled backend Plugin (.wasm) file | A relative file path | ❌ |
+| structure | readme | The path to the Plugin's `README.md` file | A relative file path | ❌ |
+| structure | settings | The path to the Plugin's `settings.wtn` file | A relative file path | ❌ |
+| frontend | path | The path to the frontend folder | A relative file path | ❌ |
+| frontend | slots | A list of slotted frontend widgets | A list of [FrontendSlot](#frontendslot) | ❌ |
+| build | backend | A list of command parts to build the backend | A list of command parts | ❌ |
+| build | frontend | A list of command parts to build the frontend | A list of command parts | ❌ |
+| definition | api_keys | A list of custom API key types declared by this Plugin | A list of string\* | ❌ |
+| network | hosts | A list of network hosts the Plugin can reach | A list of network hosts | ❌ |
+| provides | events | A list of custom events declared by this Plugin | A list of strings\* | ❌ |
+
+\* Subject to sanitation, length limits, etc. <br/>
+\*\* Field required. Content may be empty.
+
+## Types
+### SemVer
+A version string with three components:
+```
+<major>.<minor>.<patch>
+```
+For example: `0.1.0`, `1.2.3`, `1.11.1`
+
+Read more: <a href="https://semver.org/" target="_blank" rel="noopener noreferrer">https://semver.org/</a>
+
+### FrontendSlot
+| Field | Description | Type|
+|-------|-------------|-----|
+| slot | The name of the frontend slot. Frontend dependent | String |
+| entry | The name of the corresponding html file in the frontend directory | String |
+| title | A human-readable title | String |
+| unsafe | Whether the widget is unsafe (unsandboxed). Requires the `ui:unsafe` [permission](/plugin-development/reference/permissions). | Bool |
+| mode | For `message` slots. How it appears. | [SlotMode](#slotmode) |
+
+#### Examples
+```toml
+[[frontend.slots]]
+slot = "inspector"
+entry = "inspector.html"
+title = "Counter"
+```
+```toml
+[[frontend.slots]]
+slot = "message"
+entry = "widget.html"
+title = "ImageFrame"
+mode = "latest"
+```
+```toml
+[[frontend.slots]]
+slot = "doesnt_matter_in_unsafe"
+entry = "unsafe.html"
+title = "AlternativeLayout"
+unsafe = true # Requires the `ui:unsafe` permission
+```
+
+### SlotMode
+Controls how widgets attached on the `message` slot appears.
+
+| SlotMode | Behavior |
+|----------|----------|
+| `latest` | Appears on the latest message |
+| `every`  | Appears on every message (beware iframe overhead) |

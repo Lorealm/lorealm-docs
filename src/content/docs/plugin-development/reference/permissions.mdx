@@ -1,0 +1,19 @@
+---
+title: Permissions
+description: A reference list for Lorealm's Plugin permissions
+---
+
+| Permission | Description |
+|------------|-------------|
+| `chat:read` | Allows the Plugin to read the chat |
+| `chat:write` | Allows the Plugin to write messages into, or modify the chat |
+| `data:persist` | Allows the Plugin to persist and retrieve arbitrary data in th server's storage solution. Limited to it's own namespace. |
+| `model:generate` | Allows the Plugin to use completion APIs on behalf of the user. Can cost the user money. |
+| `net:fetch` | Allows the Plugin to fetch network resources from their configured endpoints |
+| `persona:read` | Allows the Plugin to read the user's Persona |
+| `prompt:write` | Allows the Plugin to write or modify the outbound prompt |
+| `state:read` | Allows the Plugin to read Weaver state |
+| `state:write` | Allows the Plugin to write and modify Weaver state |
+| `tools:write` | Allows the Plugin to write and modify tool data |
+| `ui:autoplay` | Allows frontend widgets to automatically play without user interaction |
+| `ui:unsafe` | Allows the frontend Plugin to be mounted with direct DOM access. |

@@ -1,0 +1,140 @@
+---
+title: Creating a Realm
+description: A quick-start on creating Realms
+sidebar:
+  order: 2
+---
+
+The Realms system is vast, and takes time to understand. Let's walk through the basics.
+
+Before we can create a Realm, we need to create a Blueprint. Every time you create a
+Realm, you create it through this Blueprint. The Blueprint contains instructions for
+building a Realm.
+
+Navigate to Realms -> Blueprints, then click the `+ New blueprint` button.
+
+This will create a new Blueprint titled "Untitled Blueprint". What you have right now
+is an *almost* empty Realm. The only thing in this Realm is the *Round Robin* Director,
+which just picks what actors are allowed to act per turn.
+
+Let's take a look at the `Cast` tab.
+
+This tab contains a list of "Agents". Agents come in three main types:
+- Player: that's you
+- LLM: An LLM driven actor
+- Script: A Weaver script
+
+These agents run in order, top-to-bottom, whenever the Director allows them to. Let's
+start by adding a new agent using the `+ Agent` button in the top right. You will
+notice this opens the inspector on the right hand side of your screen. This section
+contains all the details about this specific agent. See the `Kind` property? Let's set
+that to `player`.
+
+This agent is now the place your actions will take place. Whenever this agent is allowed
+to run, the frontend will provide you with your usual chat controls. Let's set the
+handle to `player` for clarity.
+
+You'll see that you have a lot of bindings in the inspector too. On the left hand side,
+you'll see all your resources. If you have a lot, you can use the search bar to filter
+them. You should have a Persona by now. Let's drag a Persona into the inspector field
+on the right. You can also attach other resources if you want. Play around with it!
+
+This is now a valid Realm. If you build it and send a message, you'll see that it does
+work. Talking to yourself isn't very fun, though. Let's add a new agent, and make sure
+the `Kind` is set to `llm`. From here, we could drag a character resource into the
+`Character` field and call it a day, but let's try something else...
+
+A big part of Realms is distribution, and where Blueprints are really powerful is making
+reusable systems. If we were to attach one of your characters to the agent, that
+character would then be a part of the blueprint, which means if you export the blueprint,
+that character will be a part of that export.
+
+What we can instead do is use inputs. Where you have all your resources, you'll an
+`INPUTS` section at the top of that. Next to the label, there is a `+` button. Let's
+click it.
+
+This creates a new input. If you divert your attention to the Inspector again, you'll
+see it contains some new UI. Here's where Realms are very cool. As you can see, the
+type of this input is a `Ref<Character>` type, which reads as "Character Reference" or
+"Reference of type Character". Inputs don't yet have a value, but they declare a
+setup process the user has to go through when creating a Realm from this Blueprint.
+
+Let's keep the settings as they are, but let's rename it to `char`. You can also set
+the description to "The character you want to chat with". Let's also uncheck the 
+checkbox that says "Is List".
+
+If we now go back to the LLM agent we created, so the Inspector shows that agent's
+values again, we can now drag the input into the `Character` field. You can also drag
+that same input into the `Name` field.
+
+That's it! If you click the "Build Realm" button, you will be greeted with the setup
+process you've just created. Congratulations, you have just recreated the system
+Lorealm uses for 1-on-1 conversations!
+
+Let's try one more thing. Let's delete the LLM agent. In it's place, let's create a
+new `For Each` block. This will add a loop that repeats over a collection you hand it.
+Do you remember the `Is List` checkbox we disabled earlier? Let's go back and turn it
+back on. Click the `char` input, the enable the checkbox on the right hand side.
+
+A list is a valid collection, so we can drag it into the `For Each` block where it says
+"pick an input". You'll see that is now says something like "for each `item` in `char`".
+
+If we now click the `member_1` agent and open it's properties in the Inspector, this
+time when we drag the `char` input from the left, into the `Character` field, you'll
+see it gets replaced with `item.id`. This is the same identifier you see in the `For
+Each` block. What this means is that for every character in the input list, it will
+create a new agent tied to that character. Let's also drag the input into the `Name`
+field again. Let's also set the `Handle` field to `{{item.slug}}`.
+
+Congratulations! You have now evolved from a 1-on-1 conversation to a 1-to-many
+conversation, or as it's more commonly known as, a group chat!
+
+If you now click Build Realm, the setup stage will now ask the user for multiple
+characters. If you have two or more characters, why don't you go ahead and try it?
+
+You'll see that you get the option to send a message first. When you do so, the
+characters you put in will then take turns sending a message, then hand the mircophone
+back to you when they're done. This is the Round Robin director doing it's job. If you
+instead want something like an alternating sequence, you'll have to write your own
+director script.
+
+This is a Director script written to make LLM agents alternate turns, in practice, it
+would look like:
+```
+player -> llm_1 -> player -> llm_2 -> player -> llm_1 -> etc.
+```
+```weaver
+{# foreach p in {{cast:player.members}} #}
+  {# if {{turn:index}} == 0 #}
+    {# return p.handle #}
+  {# endif #}
+  {# if {{turn:last.kind}} != "player" #}
+    {# return p.handle #}
+  {# endif #}
+{# endforeach #}
+
+{# if {{cast:llm.count}} <= 0 #}
+  {# return null #}
+{# endif #}
+
+$[set_var("local:slot", 
+  @[math.mod(a: 
+    @[math.floor(value: @[math.div(a: {{turn:index}}, b: 2)])], 
+    b: {{cast:llm.count}}
+  )]
+)]
+
+$[set_var("local:i", 0)]
+{# foreach c in {{cast:llm.members}} #}
+  {# if {{local:i}} == {{local:slot}} #}
+    {# return c.handle #}
+  {# endif #}
+  $[inc_var("local:i", 1)]
+{# endforeach #}
+```
+
+To apply this script, go back to the `Overview` tab, find the `Director` section,
+then set it to `Custom Script`. Open the Script editor with the button that appears
+underneath, and paste the code above. This will now apply the new director.
+
+This is a very basic example. Realms can get very complex -- the limit does not exist.

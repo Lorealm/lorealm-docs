@@ -107,30 +107,16 @@ player -> llm_1 -> player -> llm_2 -> player -> llm_1 -> etc.
 {# foreach p in {{cast:player.members}} #}
   {# if {{turn:index}} == 0 #}
     {# return p.handle #}
-  {# endif #}
-  {# if {{turn:last.kind}} != "player" #}
+  {# elif {{turn:last.kind}} != "player" #}
     {# return p.handle #}
   {# endif #}
 {# endforeach #}
 
-{# if {{cast:llm.count}} <= 0 #}
+{# if {{cast:llm.count}} == 0 #}
   {# return null #}
 {# endif #}
 
-$[set_var("local:slot", 
-  @[math.mod(a: 
-    @[math.floor(value: @[math.div(a: {{turn:index}}, b: 2)])], 
-    b: {{cast:llm.count}}
-  )]
-)]
-
-$[set_var("local:i", 0)]
-{# foreach c in {{cast:llm.members}} #}
-  {# if {{local:i}} == {{local:slot}} #}
-    {# return c.handle #}
-  {# endif #}
-  $[inc_var("local:i", 1)]
-{# endforeach #}
+{# return {{cast:llm.handles}}[@[math.floor(value: {{turn:index}} / 2)] % {{cast:llm.count}}] #}
 ```
 
 To apply this script, go back to the `Overview` tab, find the `Director` section,

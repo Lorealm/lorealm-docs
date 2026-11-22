@@ -150,13 +150,18 @@ cargo run
 ```
 
 ### Building the Frontend
+First make sure you're in the `frontend` folder: `cd frontend`.
+
+Then install the dependencies: `bun ci`. If this step fails, make sure you installed the
+prerequisites listed above.
+
+Then build the project with one of the options below:
+
 ```makefile
-make build-all # Builds everything
+make build-all # Builds everything (web + desktop)
 ```
 OR
 ```makefile
-make build-ui # Builds the UI package
-
 make build-web # Builds the web-app
 make build-desktop # Builds the desktop app
 ```

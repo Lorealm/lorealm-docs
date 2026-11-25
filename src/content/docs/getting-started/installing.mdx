@@ -176,3 +176,44 @@ make build-desktop # Builds the desktop app
 To make the backend serve this frontend, and not one downloaded from GitHub, you can
 edit the `backend/data/config.yaml` file and set the path to `../frontend/apps/web/dist`.
 You will have to re-run the build commands every time you update the frontend.
+
+## Termux
+Running on Termux is possible for those who want to run the app on mobile devices.
+
+These instructions install the server, and lets the server download the latest frontend
+automatically. Building the frontend is possible, but is not covered here.
+
+### Install the dependencies
+```
+pkg update && pkg upgrade
+pkg install git rust clang openssl pkg-config
+```
+
+:::note
+You may have to close and reopen Termux for these changes to take effect.
+:::
+
+### Clone the Repository
+```
+git clone https://github.com/Lorealm/Lorealm.git
+```
+
+### Build the server
+```
+cd backend
+cargo build --release
+```
+
+### Run the server
+```
+mkdir -p ~/lorealm
+cp target/release/lorealm_server ~/lorealm/lorealm
+cd ~/lorealm
+termux-wake-lock
+./lorealm
+```
+
+:::note
+It is recommended to run `termux-wake-unlock` when you're done as `termux-wake-lock`
+drains your battery faster.
+:::

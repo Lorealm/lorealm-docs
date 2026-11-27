@@ -1,0 +1,274 @@
+---
+interface Props {
+    /** The widget's HTML, e.g. `import src from "../widgets/foo.html?raw"`. */
+    source: string;
+    /** The slice posted as `e.data.state` / `e.data.props`. Shown in the editor. */
+    slice: unknown;
+    /** What `{{char:name}}`-style macros and `window.lorealm.context` resolve to. */
+    context?: Record<string, Record<string, string>>;
+    kind?: "state" | "props";
+    title?: string;
+}
+
+const {
+    source,
+    slice,
+    context = { char: { name: "Seraphina" }, user: { name: "Traveler" } },
+    kind = "state",
+    title = "Widget preview",
+} = Astro.props;
+
+// Keep in sync with StateFrame.svelte in the app.
+const HOST_SCRIPT = `<script>(function () {
+  function report() {
+    var b = document.body;
+    if (!b) return;
+    var cs = getComputedStyle(b);
+    var h = Math.ceil(
+      b.getBoundingClientRect().height +
+      parseFloat(cs.marginTop || '0') +
+      parseFloat(cs.marginBottom || '0')
+    );
+    parent.postMessage({ type: 'lorealm:height', height: h }, '*');
+  }
+  function ready() { parent.postMessage({ type: 'lorealm:ready' }, '*'); }
+  var written = new WeakMap();
+  function expand(text, ctx) {
+    return text.replace(/\\{\\{(\\w+):(\\w+)\\}\\}/g, function (m, who, field) {
+      var side = ctx[who];
+      var v = side && side[field];
+      return typeof v === 'string' ? v : m;
+    });
+  }
+  function fill(ctx) {
+    window.lorealm = window.lorealm || {};
+    window.lorealm.context = ctx;
+    var root = document.body || document.documentElement;
+    var walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    for (var n = walk.nextNode(); n; n = walk.nextNode()) {
+      var tag = n.parentNode && n.parentNode.nodeName;
+      if (tag === 'SCRIPT' || tag === 'STYLE') continue;
+      var seen = written.get(n);
+      var tpl = seen && seen.out === n.nodeValue ? seen.tpl : n.nodeValue;
+      if (tpl.indexOf('{{') < 0) continue;
+      var out = expand(tpl, ctx);
+      written.set(n, { tpl: tpl, out: out });
+      if (out !== n.nodeValue) n.nodeValue = out;
+    }
+  }
+  addEventListener('message', function (e) {
+    var d = e.data;
+    if (e.source !== parent || !d) return;
+    if (d.type === 'lorealm:context') {
+      fill(d.context || {});
+    } else if (d.type === 'lorealm:theme') {
+      var style = document.getElementById('lorealm-theme');
+      if (!style) {
+        style = document.createElement('style');
+        style.id = 'lorealm-theme';
+        document.head.prepend(style);
+      }
+      style.textContent = d.css;
+    }
+  });
+  try { new ResizeObserver(report).observe(document.body); } catch (e) {}
+  addEventListener('load', function () { report(); ready(); });
+  report();
+  ready();
+})();</` + `script>`;
+
+// The subset of the app's variables.css that widgets commonly lean on.
+const THEME_CSS = `:root {
+  --spacing-xs: 4px; --spacing-sm: 8px; --spacing-md: 12px; --spacing-lg: 16px;
+  --spacing-xl: 20px; --spacing-2xl: 24px; --spacing-3xl: 32px;
+  --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px; --radius-xl: 12px; --radius-full: 9999px;
+  --font-family-system: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-body: 'Nunito Variable', 'Nunito', var(--font-family-system);
+  --font-family-heading: 'Quicksand Variable', 'Quicksand', var(--font-family-system);
+  --color-text-primary: #f0e8f8;
+}
+/* flow-root stops child margins collapsing through body, which would hide them from the height report. */
+body { margin: 0; display: flow-root; }`;
+
+const initial = JSON.stringify(slice, null, 2);
+---
+
+<widget-playground
+    class="not-content widget-playground"
+    data-kind={kind}
+    data-context={JSON.stringify(context)}
+    data-theme-css={THEME_CSS}
+>
+    <div class="wp-stage">
+        {/* srcdoc is set from the script, once it's listening for `lorealm:ready`. */}
+        <iframe title={title} sandbox="allow-scripts" data-srcdoc={source + HOST_SCRIPT}></iframe>
+    </div>
+    <details class="wp-editor">
+        <summary>Payload <span class="wp-hint">(edit to update the widget)</span></summary>
+        <textarea spellcheck="false" autocomplete="off" aria-label="Widget payload (JSON)">{initial}</textarea>
+        <div class="wp-footer">
+            <span class="wp-error" role="status"></span>
+            <button type="button" class="wp-reset">Reset</button>
+        </div>
+    </details>
+</widget-playground>
+
+<script>
+    class WidgetPlayground extends HTMLElement {
+        #frame!: HTMLIFrameElement;
+        #input!: HTMLTextAreaElement;
+        #error!: HTMLElement;
+        #ready = false;
+        #slice: unknown = null;
+        #timer = 0;
+
+        connectedCallback() {
+            this.#frame = this.querySelector("iframe")!;
+            this.#input = this.querySelector("textarea")!;
+            this.#error = this.querySelector(".wp-error")!;
+            const initial = this.#input.value;
+
+            this.#parse();
+            window.addEventListener("message", this.#onMessage);
+            this.#frame.srcdoc = this.#frame.dataset.srcdoc!;
+            this.#input.addEventListener("input", () => {
+                clearTimeout(this.#timer);
+                this.#timer = window.setTimeout(() => this.#parse() && this.#push(), 200);
+            });
+            this.querySelector(".wp-reset")!.addEventListener("click", () => {
+                this.#input.value = initial;
+                this.#parse() && this.#push();
+            });
+        }
+
+        disconnectedCallback() {
+            window.removeEventListener("message", this.#onMessage);
+        }
+
+        #parse(): boolean {
+            try {
+                this.#slice = JSON.parse(this.#input.value);
+                this.#error.textContent = "";
+                this.#input.removeAttribute("aria-invalid");
+                return true;
+            } catch (err) {
+                this.#error.textContent = (err as Error).message;
+                this.#input.setAttribute("aria-invalid", "true");
+                return false;
+            }
+        }
+
+        #post(msg: unknown) {
+            this.#frame.contentWindow?.postMessage(msg, "*");
+        }
+
+        #push() {
+            if (!this.#ready) return;
+            const kind = this.dataset.kind;
+            this.#post({ type: `lorealm:${kind}`, state: this.#slice, props: this.#slice });
+        }
+
+        #onMessage = (e: MessageEvent) => {
+            if (e.source !== this.#frame.contentWindow) return;
+            const d = e.data;
+            if (d?.type === "lorealm:ready") {
+                this.#ready = true;
+                this.#post({ type: "lorealm:theme", css: this.dataset.themeCss });
+                this.#post({ type: "lorealm:context", context: JSON.parse(this.dataset.context!) });
+                this.#push();
+            } else if (d?.type === "lorealm:height" && typeof d.height === "number") {
+                this.#frame.style.height = `${Math.max(0, Math.min(4000, d.height))}px`;
+            }
+        };
+    }
+    customElements.define("widget-playground", WidgetPlayground);
+</script>
+
+<style>
+    .widget-playground {
+        display: block;
+        margin-block: 1.5rem;
+        border: var(--lr-rule);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        background: transparent;
+    }
+    iframe {
+        display: block;
+        width: 100%;
+        height: 0;
+        border: none;
+        background: transparent;
+        color-scheme: light;
+    }
+    .wp-stage {
+        padding: 1rem;
+    }
+    .wp-editor {
+        border-top: var(--lr-rule);
+        background: var(--lr-code-bg);
+    }
+    .wp-editor summary {
+        cursor: pointer;
+        padding: 0.5rem 1rem;
+        font-size: var(--sl-text-sm);
+        font-weight: 600;
+        color: var(--sl-color-gray-2);
+        user-select: none;
+    }
+    .wp-hint {
+        font-weight: 400;
+        color: var(--sl-color-gray-3);
+    }
+    textarea {
+        display: block;
+        width: 100%;
+        min-height: 16rem;
+        resize: vertical;
+        box-sizing: border-box;
+        padding: 0.75rem 1rem;
+        border: none;
+        border-top: var(--lr-rule);
+        background: transparent;
+        color: var(--sl-color-white);
+        font-family: var(--sl-font-mono);
+        font-size: var(--sl-text-xs);
+        line-height: 1.6;
+        tab-size: 2;
+    }
+    textarea:focus-visible {
+        outline: 2px solid var(--sl-color-accent);
+        outline-offset: -2px;
+    }
+    textarea[aria-invalid="true"] {
+        outline: 2px solid var(--sl-color-red);
+        outline-offset: -2px;
+    }
+    .wp-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.5rem 1rem;
+        border-top: var(--lr-rule);
+        font-size: var(--sl-text-xs);
+    }
+    .wp-error {
+        color: var(--sl-color-red-high);
+        font-family: var(--sl-font-mono);
+    }
+    .wp-reset {
+        margin-inline-start: auto;
+        padding: 0.25rem 0.75rem;
+        border: 1px solid var(--sl-color-gray-4);
+        border-radius: 0.25rem;
+        background: transparent;
+        color: var(--sl-color-gray-2);
+        font: inherit;
+        cursor: pointer;
+    }
+    .wp-reset:hover {
+        border-color: var(--sl-color-accent);
+        color: var(--sl-color-white);
+    }
+</style>

@@ -1,0 +1,282 @@
+---
+title: Widgets
+sidebar:
+  order: 3
+---
+import WidgetPlayground from "../../../components/WidgetPlayground.astro";
+import heartChart from "../../../widgets/heart-chart.html?raw";
+import datingSimUrl from "../../../assets/Dating Sim.widget.json?url";
+
+Widgets in Lorealm are a way to attach various visual elements in the conversation that can react to state changes or just display some static data.
+
+The idea behind widgets is to shift the responsibility of the LLM to recreating HTML Widgets every turn and praying it doesn't break, to instead
+letting them update the state behind them. Below is an example of one of the first Widgets that was created in Lorealm:
+
+<WidgetPlayground
+  source={heartChart}
+  context={{ char: { name: "Character" }, user: { name: "User" } }}
+  slice={{
+    state: {
+      dating_sim: {
+        ap: 45, tp: 70,
+        deltas: {
+          ap: { val: 10, reason: "Remembered their favourite tea" },
+          tp: { val: -15, reason: "They burnt the tea. Somehow." }
+        },
+        status: "Warming up",
+        thoughts: "\"Maybe they're not so bad after all.\"",
+        prefs: {
+          likes: [{ label: "Stargazing", desc: "Quiet nights on the observatory roof" }],
+          dislikes: [{ label: "Loud taverns", desc: "Too crowded to think" }]
+        }
+      }
+    }
+  }}
+/>
+
+This Widget shows how they can react to state. In Lorealm the state would change with every message, but for the sake of simplicity, the one above
+changes whenever you change the payload. Feel free to test it out!
+
+Using Widgets, you can express everything from simple stat-tracking (like the one above) to more complicated things such as an interactive minimaps.
+Widgets can be interactive, meaning you can add buttons to them which perform actual Weaver logic. If you wanted to, you could use widgets to completely
+change how you play a conversation -- You could make all the interaction happen through a single widget instead of the chat bar.
+
+## The types of Widgets
+We have two different type of Widgets. Fundamentally speaking, they're both still HTML elements, but the type differs how and where they appear.
+
+### Static Widgets
+Static Widgets are the Widgets like the one you see above. They get appended to the end of the message and display some information regarding the state
+at that moment in time. These are useful for stat-tracking, chat options, minimaps, and other things you want to either track over time or have access
+to with every passing turn.
+
+### Attachements
+Attachement Widgets are small visual Widgets that the LLM can choose to insert at any point in a message. Attachements are added to a catalog the model
+searches through using keywords and attached whenever the model feels like it. These help provide some atmosphere into the conversation. They are useful
+for things such as styled signs, SMS bubbles, status text *(insert Dark Souls 3 'YOU DIED' here)* and things along those lines.
+
+## How Widgets are managed
+There are two main ways of managing Widgets in Lorealm, both of which boil down to different way of manipulating state.
+
+### Tools
+A Widget can bundle an unlimited number of Tools. These Tools can either be used as a slash-command from the chat composer or as a tool called directly
+by the LLM. These tools would then be responsible for manipulating the state the Widgets rely on. In the example widget above, a tool was given to the
+LLM, and it was given instructions on how to pass in the data the Widget needed. You can see that specific tool below if you're interested.
+
+<details>
+    <summary>Tool surface</summary>
+    ```weaver
+    $[-set_var("local:summary", ["Summary:"])]
+    
+    {#- if !$[var_exists("state:dating_sim.ap")] #}
+      $[set_var("state:dating_sim.ap", {{cmd:deltas.ap.val}})]
+      $[set_var("state:dating_sim.tp", {{cmd:deltas.tp.val}})]
+      $[set_var("state:dating_sim.deltas", {{cmd:deltas}})]
+      $[set_var("state:dating_sim.deltas.ap.val", 0)]
+      $[set_var("state:dating_sim.deltas.tp.val", 0)]
+    {#- else #}
+      $[inc_var("state:dating_sim.ap", {{cmd:deltas.ap.val}})]
+      $[inc_var("state:dating_sim.tp", {{cmd:deltas.tp.val}})]
+      $[set_var("state:dating_sim.deltas", {{cmd:deltas}})]
+    {#- endif #}
+    
+    $[-push_var("local:summary", "- AP Delta: " + {{state:dating_sim.deltas.ap.val}})]
+    $[push_var("local:summary", "- TP Delta: " + {{state:dating_sim.deltas.tp.val}})]
+    
+    $[-set_var("state:dating_sim.thoughts", {{cmd:thoughts}})]
+    
+    $[-push_var("local:summary", "- Thoughts: " + "\"" + {{state:dating_sim.thoughts}} + "\"")]
+    
+    {#- if {{cmd:status}} != none #}
+      $[set_var("state:dating_sim.status", {{cmd:status}})]
+      $[push_var("local:summary", "- Status: " + "\"" + {{state:dating_sim.status}}+ "\"")]
+    {# endif #}
+    
+    {#- if !$[var_exists("state:dating_sim.prefs")] #}
+      $[-set_var("state:dating_sim.prefs", {likes: [], dislikes: []})]
+    {# endif #}
+    
+    {#- if {{cmd:likes}} != none #}
+      $[push_var("local:summary", "Likes:")]
+      {# foreach like in {{cmd:likes}} #}
+        {# if like.op == "add" #}
+          $[push_var("state:dating_sim.prefs.likes", {id: {{like}}.id, desc: {{like}}.desc, label: {{like}}.label})]
+          $[push_var("local:summary", "- add: " + {{like}}.label + " (" + {{like}}.id + ")")]
+        {# elif like.op == "mod" #}
+          $[set_var("state:dating_sim.prefs.likes", [
+            {# foreach l in {{state:dating_sim.prefs.likes}} #}
+              {# if l.id == like.id #} @[object.merge(a: l, b: {id: {{like}}.id, desc: {{like}}.desc, label: {{like}}.label})]
+              {# else #} l {# endif #}
+            {# endforeach #}
+          ])]
+          $[push_var("local:summary", "- mod: " + {{like}}.label + " (" + {{like}}.id + ")")]
+        {# elif like.op == "del" #}
+          $[set_var("state:dating_sim.prefs.likes", [
+            {# foreach l in {{state:dating_sim.prefs.likes}} #}
+              {# if l.id != like.id #} l {# endif #}
+            {# endforeach #}
+          ])]
+          $[push_var("local:summary", "- del: " + {{like}}.label + " (" + {{like}}.id + ")")]
+        {# endif #}
+      {# endforeach #}
+    {# endif #}
+    
+    {#- if {{cmd:dislikes}} != none #}
+      $[push_var("local:summary", "Likes:")]
+      {# foreach dislike in {{cmd:dislikes}} #}
+        {# if dislike.op == "add" #}
+          $[push_var("state:dating_sim.prefs.dislikes", {id: {{dislike}}.id, desc: {{dislike}}.desc, label: {{dislike}}.label})]
+          $[push_var("local:summary", "- add: " + {{like}}.label + " (" + {{like}}.id + ")")]
+        {# elif dislike.op == "mod" #}
+          $[set_var("state:dating_sim.prefs.dislikes", [
+            {# foreach l in {{state:dating_sim.prefs.dislikes}} #}
+              {# if l.id == dislike.id #} @[object.merge(a: l, b: {id: {{dislike}}.id, desc: {{dislike}}.desc, label: {{dislike}}.label})]
+              {# else #} l {# endif #}
+            {# endforeach #}
+          ])]
+          $[push_var("local:summary", "- mod: " + {{like}}.label + " (" + {{like}}.id + ")")]
+        {# elif dislike.op == "del" #}
+          $[set_var("state:dating_sim.prefs.dislikes", [
+            {# foreach l in {{state:dating_sim.prefs.dislikes}} #}
+              {# if l.id != dislike.id #} l {# endif #}
+            {# endforeach #}
+          ])]
+          $[push_var("local:summary", "- del: " + {{like}}.label + " (" + {{like}}.id + ")")]
+        {# endif #}
+      {# endforeach #}
+    {# endif #}
+    
+    @[- array.join({{local:summary}}, "\n")]
+    ```
+</details>
+
+### Lorebooks/Scripts
+The other ways to mutate scripts without the help of an LLM come in the form of Script Agents within Realms and Lorebooks. With this approach, state
+could mutate naturally over time without the influence of the LLM. With the Lorebook approach, you'd most likely have it react to certain keywords in
+the chat history, and with Script Agents, you'd create some kind of system that runs every turn.
+
+Of course, there is no right answer here. You can mix-and-match these approaches to create intricate systems. The "best" approach may be to mix all three
+approaches!
+
+## Developing Widgets
+Before getting into how the editor works, we need to talk about how state is injected into Widgets.
+
+### Accessing State
+State is injected into your Widget whenever it's constructed. Attachements recieve them as they ger created, in the middle of a message, while Static Widgets
+recieve them after the message has finished generating.
+
+You can access state like this (taken from the example widget above):
+```html
+<script>
+window.addEventListener('message', (e) => {
+  if (e.data?.type !== 'lorealm:state') return;
+  
+  const stats = e.data.props.state?.dating_sim;
+})
+</script>
+```
+The code above is the equivalent to accessing `{{state:dating_sim}}` in Weaver.
+
+:::note
+Widgets are limited to accessing data under `state:*`
+:::
+
+When using Attachements, you'll be accessing properties instead of state, so instead of `e.data.state`, it would be `e.data.props`. These properties are
+passed in directly from the caller and does not rely on any Weaver state.
+
+You can also access the `context`, which gives you information about the active `user` and `char` objects:
+```html
+<script>
+window.addEventListener('message', (e) => {
+  const { char, user } = window.lorealm?.context ?? {};
+
+  // Equivalent to: "{{char:name}} greets {{user:name}}"
+  console.log(`${char.name} greets ${user.name}`);
+})
+</script>
+```
+
+### The Editor
+Now that we know how to access state in a Widget, we can move on to the editor. The editor is split into three main parts.
+
+#### HTML source
+This is where you'll spend most of your time. It's where the HTML for your Widget lives, which is 90% of what a Widget consists of. There is not much to
+say about this. You have a HTML code editor and a live preview. As you update the HTML, you'll see a preview of it in real time. You also have the option
+to create a JSON test payload to more accurately model your data. This payload is local and will not sync across devices.
+
+:::tip
+For CSS styling, you have access to over 180 CSS variables which you can use to make your Widgets coherent with the active style. Consider using the
+`Style Variables` inspector widget (not to be confused with the Widgets in this section) to see what you have access to.
+:::
+
+#### Model
+This section is where you define how the model interacts with the widget.
+
+##### Directive
+The directive is just a prompt that gets injected into the Context Template whenever this Widget is active. This is where you explain the model how to
+update the state you're using. Below you can see the prompt which was used for the example Widget above
+<details>
+    <summary>Example directive</summary>
+    ```weaver
+    # Dating Sim Widget
+    The Dating Sim widget is updated with the use of the `update_dating_sim` tool, and should be used once every turn.
+    
+    ## Value breakdown
+    **Affection Points (AP)**: From -200 to +200; How much affection {{char:name}} holds for {{user:name}}. Ranges from mortal enemies to inseperable lovers. 0 = Neutral.
+    **Trust Points (TP)**: From -100 to +200; How much {{char:name}} trusts {{user:name}}.
+    
+    ## Required values every turn
+    - Point deltas (ap, tp)
+    - Thoughts
+    
+    ## Optional values and when to use them
+    - Status; used when the status between {{char:name}} and {{user:name}} changes. It can be a big milestone, or something smaller.
+    - Likes/Dislikes; only used when something new about {{char:name}}'s preferences are discovered, or something new about an existing preference is new or has changed.
+    ```
+</details>
+
+##### Text Rendering
+Since Widgets can't be seen by an LLM, we sometimes want to "render" the Widget as text. Without it, some context can be lost in following turns. For example,
+if you create an SMS bubble Attachement Widget, and don't render it as text, the model won't be able to see it in the following turns. The built in SMS text bubbles
+render the text like this:
+```weaver
+[Text message received{# if {{props:sender}} #} from {{props:sender}}{# endif #}: {{props:content}}]
+```
+Which the model then sees as something like:
+```
+[Text message recieved from SENDER: whats good cuh]
+```
+
+For the Dating Sim widget above, this was used:
+```weaver
+**Current Dating Sim State:**
+{# if $[var_exists("state:dating_sim.ap")] #}
+AP: {{state:dating_sim.ap}} (change: {{state:dating_sim.deltas.ap.val}}); TP: {{state:dating_sim.tp}} (change: {{state:dating_sim.deltas.dp.val}})
+Status: {{state:dating_sim.status}}
+Thoughts: {{state:dating_sim.thoughts}}
+Likes: {{state:dating_sim.prefs.likes}}
+Dislikes: {{state:dating_sim.prefs.dislikes}}
+{# else #}
+No state exists yet. Refer to the instructions on seeding the simulator using the `update_dating_sim` tool.
+{# endif #}
+```
+
+##### Tools
+This is just a simple list of Tools that are bundled with the Widget. Whenever the Widget is exported, the attached tools come with it. For the Dating Sim
+Widget, a single tool called `update_dating_sim` was attached, the source code of which can be found above.
+
+#### Settings
+The settings section contains a little bit of metadata for the Widget.
+
+##### Description
+The description is used when Attachements are involved. It's the text the model will see when searching through the catalog of available Widgets. The description
+is also displayed in the UI. For Static Widgets, the description does not have any technical purpose outside of displaying it in the UI.
+
+##### Placement
+This is where you select what type of Widget this is. Depending on what you pick, you get another scoped option:
+
+**Widget**: Provides a "Renders on" option. This option sets which messages the Widget renders on.
+
+**Attachement**: Provides a "Properties" option. This is how you declare what the model should pass in when building this Attachement.
+
+## Download the Example Widget
+You can download the Example Widget here: <a href={datingSimUrl} download="Dating Sim.widget.json">Download</a>

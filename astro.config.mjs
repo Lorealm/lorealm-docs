@@ -27,11 +27,15 @@ export default defineConfig({
         {
 					label: 'Getting Started',
 					items: [{ autogenerate: { directory: 'getting-started' } }],
-				},
+        },
+        {
+          label: 'Resources',
+          items: [{ autogenerate: { directory: 'resources' } }],
+        },
         {
 					label: 'Realms',
-					items: [{ autogenerate: { directory: 'realms' } }],
-				},
+          items: [{ autogenerate: { directory: 'realms' } }],
+        },
         {
 					label: 'Compatibility',
 					items: [{ autogenerate: { directory: 'compatibility' } }],

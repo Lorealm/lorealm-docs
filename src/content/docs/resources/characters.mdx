@@ -1,0 +1,119 @@
+---
+title: Characters
+sidebar:
+  order: 1
+---
+
+Characters in Lorealm are similar to Characters you'll find elsewhere. Our card format is based on Character Card V3 (CCv3), and importing cards that use this spec is fully supported.
+
+:::note
+Most big RP frontends use CCv3, such as SillyTavern and all its derivatives.
+:::
+
+## Writing a Character
+A Character in Lorealm is split into "chunks". Each chunk is basically just a prompt that gets merged into the final message sent to the LLM. These are more convention than necessity.
+
+To get started with developing a Character in Lorealm, head to the `Studio` tab, navigate to the `Characters` section, and create a new character.
+
+### What's unique to Lorealm characters?
+Before explaining all the generic fields that most frontends share, let's talk about what makes a Lorealm Character a bit different from what you're used to.
+
+#### Versioning
+Lorealm has an automatic versioning system. When you edit characters, you'll see a small label near the top left of the editor that reads something like `v1`. This will keep increasing
+automatically as you edit the character.
+
+The way it works is that all edits made within 5 minutes of each other are bundled into the same version. Every time an edit is saved, this 5-minute timer is refreshed. So if you stop
+editing the card, the system counts 5 minutes from the last edit. If you edit after that timer is up, a new version is started. This lets you work on your characters without having to
+worry about your data being wiped off the face of the Earth.
+
+:::tip
+5 minutes is the default timespan for a version. You can tweak this in the server settings.
+:::
+
+#### Attachments
+Lorealm has a lot of resource types that other frontends either don't have, or treat as a completely separate system. Characters in Lorealm can carry a few attachments, namely Lorebooks,
+Tools and Widgets. These get exported with the Character, and anyone who imports it also receives the attachments. This lets you create cool things such as character-specific minimap
+widgets that everyone who imports your Character also gets.
+
+#### Alternate Names
+Alternate Names currently don't do much, but they're a planned feature down the road.
+
+### Character Fields
+Now comes the generic explanation of how Characters work. If you're familiar with SillyTavern Characters, you can skip this. We'll step through it tab by tab (as per the Character editor).
+
+:::caution
+The instructions below are **recommendations** and generally standard practice. These are by no means strict rules you have to follow. Feel free to experiment!
+:::
+
+#### Identity
+The identity section is where you define your Character at a high level. Among the fields below, only the active name is seen by the LLM.
+
+| Field | Explanation |
+|-------|-------------|
+| Name  | The name of the character. What the `{{char:name}}` macro resolves to |
+| Display Name | A secondary name for the Character for those who want separate names in the menu and in the chat. If set, the Display Name overrides the primary Name when `{{char:name}}` is resolved |
+| Tags | A list of tags. Used primarily on 3rd party card hosting sites (Chub, BotBooru, etc.), but can also be searched for in Lorealm |
+| Alternate Names | A planned feature; currently does not do anything |
+| Avatar | The avatar that portrays this Character |
+
+#### Persona
+This is the heart of your Character. Here you'll describe who the Character is. Think personality traits, appearance, etc.
+
+:::tip
+It's generally advised to keep other instructions out of the Character Definition as they can conflict with a user's instructions.
+
+If you want to tell the LLM what style to write in, or other things that aren't directly related to the character, do that in your Context Template.
+:::
+
+| Field | Explanation |
+|-------|-------------|
+| Description | The main field of a character. This is where the bulk of your definition goes. |
+| Personality | A small, usually comma-separated list of personality traits. |
+| Scenario | A small description of the scenario we're in. Note that this is the same for every greeting. If you want different scenarios per greeting, it's better to write it in the greeting text, or in a [Lorebook](/resources/lorebooks). |
+
+#### Prompts
+This section contains prompts that are meant to change how the LLM behaves. Think of them as extra rules for the LLM to follow. Most Characters don't need this.
+
+| Field | Explanation |
+|-------|-------------|
+| System prompt | A prompt that acts as the system behind the LLM. Write specialized directives here. |
+| Post-history Instructions | This is also a system instruction, but one that's generally placed after the chat history to make it "easier to see" for the LLM. |
+| Template Injection | This allows you to render a Weaver system as text. This is an advanced field which requires knowledge of [Weaver](/weaver/weaver-lang) to be useful. |
+
+#### Greetings
+This section contains a list of greetings. A greeting is just the first message in a new conversation. Creators generally use multiple greetings for two reasons:
+1. Create multiple, disjoint greetings
+2. Create multiple checkpoints where you're meant to play through them in order
+
+As always, there's no right answer to these, but the two use cases above are the most common ones.
+
+#### Examples
+This is a list of example messages. This just gives the LLM a baseline on how to speak as your Character. If you want your character to speak in an accent or with a particular
+form or language, this is a good place to put it. It can also be useful to write larger paragraphs of narration if you want a particular narration style.
+
+#### Attachments
+These are resources that are attached to the Character and get exported alongside it. Attached resources will always be active, even if they are disabled globally in the Studio.
+
+| Field | Explanation |
+|-------|-------------|
+| Lorebooks | Attached lorebooks. Lorealm supports multiple lorebooks natively, but when exporting to SillyTavern, only one lorebook can be exported (this lorebook is marked with `Main`). |
+| Tools | Attached tools. These are the tools that are made available to the LLM. |
+| Widgets | Attached widgets. These can either be of type `widget` or `attachement`. See the Widgets section for more detail. |
+
+#### Authoring
+The authoring section contains information about the author. These are displayed on 3rd party sites. These are purely metadata which the LLM will never see.
+
+| Field | Explanation |
+|-------|-------------|
+| Creator | The name of who created the card. |
+| Card version | The version of the card. If unset, it's handled automatically by Lorealm. |
+| Creator notes | A statement regarding the character. 3rd party sites usually support arbitrary HTML and Markdown. |
+
+#### History
+This section contains the version history of the Character. Here you can view or restore an earlier version of your Character.
+
+:::caution
+Restoring an older version overwrites the current card. The version history is linear.
+
+You can always restore the current version again, though.
+:::

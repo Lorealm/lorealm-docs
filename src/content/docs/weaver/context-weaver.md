@@ -8,10 +8,10 @@ ContextWeaver is the engine used for managing lorebooks, written from the ground
 ### How it differs from normal Lorebooks
 In spirit, ContextWeaver is very similar to systems deployed by platforms like SillyTavern. Lorealm and the Weaver stack was built with two objectives in mind:
 
-### State
+#### State
 If you've ever tried to use Lorebooks in SillyTavern, you'll find that maintaining any sort of state is clunky. It requires interacting with their command system, which is inherently untyped and unreliable (in my experience). ContextWeaver supports variables, functions and a variety of strategies for embedding content as first-class constructs. This allows you to create highly sophisticated systems that persist and modify state across turns. This is extremely powerful if you want to create any kind of game system or something that requires more predictable logic than whatever your LLM gives you.
 
-### Distribution
+#### Distribution
 This is the biggest pain point of other platforms. There is no way of sharing your sophisticated systems with others. Every system you create rely on your specific environment being the way it is. The Weaver stack solves this by deploying a macro language that works exactly the same way no matter where they are.
 
 ## Entries

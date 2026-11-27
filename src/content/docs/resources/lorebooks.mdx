@@ -1,0 +1,251 @@
+---
+title: Lorebooks
+sidebar:
+  order: 2
+---
+
+A Lorebook in the traditional sense is just a simple keyword-based system that inserts some text into your prompt. For example, if your scenario has a custom magic system, you would
+use Lorebooks to search the chat history for keywords such as "magic", "mana", "resonance", etc. The system would then simply insert a static block of text into the prompt.
+
+In Lorealm, we have reimagined what a Lorebook can be. The fundamental concept is the same, and if you only want simple keyword-based retrieval, you can do that. But in Lorealm,
+your Lorebooks can represent highly complex systems that evolve over time. This is largely thanks to [Weaver Programming Language](/weaver/weaver-lang), and the library that's built
+on top of it: [ContextWeaver](/weaver/context-weaver).
+
+## Motivations
+The reasons Lorebooks are the way they are comes down to an experience I had with SillyTavern. I wanted to create a Character card that represented a sort of game system where you
+walk around a building and explore it. I wanted it to be distributable so anyone who downloaded the card could play that scenario. The problem I quickly ran into was, there was no
+good way of tracking state across turns. The best way I found was using some HTML hacks and instructing the model to keep certain keywords in those HTML elements so they would be
+hidden from the user. I then tried to use the Lorebook features provided to work around that, but long story short, the system was very unpredictable and hard to debug.
+
+This was my motivation to design something more intricate, and the primary motivation not just behind these reimagined Lorebooks, but for Lorealm as a whole.
+
+## Concepts
+### The simple use-case
+If you want a Lorebook that simply inserts static chunks of text into your prompt, the easiest way to do it is the same way as SillyTavern does it: just add a few keywords
+and call it a day. This works very well when you have a lot of information which you don't want permanently bloating the context.
+
+### Evolving state
+Now let's get into what makes Lorealm's Lorebooks unique. Lorebooks in Lorealm can evolve, as mentioned, but what does that mean?
+
+That essentially means an entry's content is not static, and may change over time. Let's make a Lorebook entry that counts every time it's triggered:
+```weaver
+$[inc_var("state:lb.counter", 1)]
+
+The counter is: {{state:lb.counter}}!
+```
+
+Every time this entry is inserted into the prompt, it will increase the counter by 1.
+
+This is obviously a very simple example, but state management opens the doors to so many things. Here are a few examples of what you can express:
+- An interactive battle system where entities use actual spells and deal structured damage (not just emulated via LLMs)
+- A movement system that lets the user move through a world. Each location can have friendly encounters, lootable chests, etc.
+- A mechanical framework where you can slot your own content into (more on that in the next section)
+
+### Stacking Lorebooks
+This sounds very technical and hard to understand, but it's not. All it means is that two Lorebooks can interact with each other. The way I like to think of this is a battle system.
+
+Let's say we want to make a Pokémon-like battling system. What do we need? Well, we need moves, types, trainers, the actual Pokémon, and more. One may be tempted to just create a single
+Lorebook, create all the logic needed, and call it a day. But we can do better.
+
+We can create **two** Lorebooks. One Lorebook is in charge of the actual battling system and defines a range of types. The second Lorebook just provides pure data the system uses. So in
+the *system* Lorebook, we do all the programming-heavy work, and in the *content* Lorebook, we just provide moves, trainers, and stuff.
+
+This is a very nice way to work because it gives you the option to use the system Lorebook for many things, not just Pokémon. It also allows you to create multiple *content* Lorebooks that
+bolt onto the same *system* Lorebook (for example, one Lorebook per generation).
+
+## Creating a Lorebook
+This section explains how Lorebooks are authored. It's recommended to keep the Lorebook editor open while reading through this.
+
+### Syntax
+An entry's content is written in [Weaver](/weaver/weaver-lang). If you only want static text, just write
+plain text: anything that isn't Weaver syntax is inserted as-is. This section covers the syntax you'll use
+most often. See the [Weaver reference](/weaver/weaver-lang) for the full details.
+
+#### Inserting values
+Use `{{namespace:name}}` to insert the value of a variable.
+
+```weaver
+{{char:name}} walks into the tavern. The innkeeper greets {{user:name}}.
+```
+
+Your Lorebook's own variables usually live in the `state` namespace:
+
+```weaver
+Gold: {{state:gold}}
+```
+
+#### Changing state
+Commands, written `$[name(args)]`, read and change state. They produce no text of their own.
+
+```weaver
+$[set_var("state:visited_forest", true)]
+$[inc_var("state:lb.counter", 1)]
+```
+
+Note that when a command *targets* a variable, you pass its name as a string (`"state:gold"`). You only use
+`{{state:gold}}` when you want to *read* its value.
+
+:::caution
+Commands run every time the entry is inserted into the prompt. An entry with `inc_var` that stays active
+for 5 turns (for example through Sticky turns) will increase the counter 5 times.
+:::
+
+#### Conditional text
+Use `{# if #}`, `{# elif #}` and `{# else #}` to change what the entry says based on state.
+
+```weaver
+{# if {{state:level}} > 5 #}
+The ancient forest recognizes a seasoned adventurer.
+{# elif {{state:visited_forest}} == true #}
+The forest feels familiar now.
+{# else #}
+The dark forest looms, its shadows deep and menacing.
+{# endif #}
+```
+
+:::tip
+Use the entry's **Condition** field to decide *whether* the entry appears at all, and an `{# if #}` block
+to decide *what* it says once it appears. The Condition field takes a bare expression with no `{# #}`:
+`{{state:location}} == "forest"`.
+:::
+
+#### Lists
+Use `{# foreach #}` to repeat text for each item in an array.
+
+```weaver
+Inventory:
+{# foreach item in {{state:inventory}} #}
+  - {{item}}
+{# endforeach #}
+```
+
+The loop variable (`{{item}}`) has no namespace and only exists inside the block.
+
+#### Transforming values
+Processors, written `@[namespace.name(param: value)]`, transform the inputs you give them. They can't read
+or change state.
+
+```weaver
+Threat level: @[text.upper(text: "high")]
+```
+
+:::tip
+Use the "Weaver Reference" inspector widget to get an overview of which processors and commands are available.
+:::
+
+#### Using other entries
+You can pull in another entry by its `id`:
+
+| Syntax | Effect |
+|--------|--------|
+| `[[some_id]]` | Inserts that entry's content right here. Useful for reusable blocks. |
+| `<trigger id="some_id">` | Activates that entry in its own slot. Inserts nothing here. |
+
+```weaver
+{# if {{state:in_combat}} #}
+<trigger id="combat_rules">
+{# endif #}
+```
+
+#### Quick reference
+| I want to… | Syntax |
+|------------|--------|
+| Insert a value | `{{state:gold}}` |
+| Set a variable | `$[set_var("state:gold", 10)]` |
+| Increment a variable | `$[inc_var("state:gold", 1)]` |
+| Show text conditionally | `{# if ... #} ... {# endif #}` |
+| Repeat for each item | `{# foreach x in list #} ... {# endforeach #}` |
+| Transform a value | `@[text.upper(text: "hi")]` |
+| Embed another entry | `[[entry_id]]` |
+| Activate another entry | `<trigger id="entry_id">` |
+
+### Lorebook Settings
+These are settings on the underlying Lorebook. These apply to all the underlying entries, and sometimes to the wider state-landscape.
+
+#### Basic
+| Field | Explanation |
+|-------|-------------|
+| Name  | The name of the Lorebook. Purely visual. |
+| Description | A description for the Lorebook. Purely visual. |
+| Case-sensitive keywords | Whether keywords should be case-sensitive. Default: false |
+
+#### Defaults
+These are the default values that every entry in this Lorebook inherits from.
+
+| Field | Explanation |
+|-------|-------------|
+| Scan depth | How many messages in the chat history to scan. Default: 10 |
+| Priority | The default priority of an entry. Priority determines the ordering and the group budgets. Default: 100 |
+| Slot | The default slot to insert the content into. Default: backdrop |
+
+:::tip[info]
+A 'slot' is a position in your Context Template. Lorealm does not use relative positioning (e.g. before/after character) like SillyTavern does.
+:::
+
+#### Budgets
+This section lets you configure the default budget per entry, and define budget groups.
+
+| Field | Explanation |
+|-------|-------------|
+| Budget | The overall budget per entry. Default: unlimited |
+
+##### Groups
+These are a way to create more specialized groups, each with their own token budgets. Every entry within a group shares that group's budget.
+
+| Field | Explanation |
+|-------|-------------|
+| Group name | The name of the group and how you reference it from entries |
+| Budget | The total budget for all entries in this group |
+
+#### Namespaces
+Namespaces are ways for Lorebooks to "claim" a certain namespace in the state landscape. In the example of our Pokémon system, our *system*
+Lorebook may want to claim a namespace, for example `pokemon` to make sure no other Lorebooks can mess with that state. That slice
+of state (`pokemon:*`) is then invisible to all other Lorebooks except to Lorebooks that explicitly grant themselves permission to read or write to it.
+
+:::note
+Namespaces only prohibit other Lorebooks from accessing the namespace. Other Weaver sources can still access them.
+:::
+
+| Field | Explanation |
+|-------|-------------|
+| namespace | The namespace to claim (the `namespace` part of `namespace:name`) |
+| access | Which access the Lorebook has to this namespace. Possible values: `readonly`, `readwrite`. Default: `readonly` |
+| description | A small description for what this namespace is used for. Purely visual. |
+
+### Entry Settings
+#### Definition
+| Field | Explanation |
+|-------|-------------|
+| id    | The ID used to reference this entry in other entries. Must be unique. |
+| Name  | The name that's displayed in the UI |
+
+#### Content
+The content is the text and code that will be evaluated every time the activation condition(s) pass. This can be as simple as a plain-text entry, include
+some basic macros like `{{char:name}}`, or be a full-on script. See the [Syntax](#syntax) section for more details on what you can do here.
+
+#### Activation
+This is how you configure when an entry is activated.
+
+| Field | Explanation |
+|-------|-------------|
+| Keywords | A list of keywords to look for |
+| Regex | A list of regex expressions to match on |
+| Condition | A weaver boolean expression (e.g. `{{state:location}} == "dark_forest"`). When this evaluates to true, the entry is allowed to run. |
+| Constant | Whether the entry is constant. A constant entry is *always* active, regardless of other activation conditions |
+| Scan depth | How many messages to include in the keyword/regex search. Overrides the default declared in the [Lorebook Settings](#defaults) |
+| Slot | The slot to insert the content into. Overrides the default declared in the [Lorebook Settings](#defaults) |
+
+:::tip[info]
+A 'slot' is a position in your Context Template. Lorealm does not use relative positioning (e.g. before/after character) like SillyTavern does.
+:::
+
+#### Advanced
+| Field | Explanation |
+|-------|-------------|
+| Priority | Determines how to prioritize this entry. A higher-priority entry is prioritized in token budgets (both group and global budgets). Overrides the default declared in the [Lorebook Settings](#defaults) |
+| Insertion order | The order this entry is inserted in. Use if you want predictable layouts |
+| Fallback slots | Slots to try if the main slot can't be used (for example if the target Context Template does not have the main slot configured) |
+| Sticky turns | How many turns this entry should stay active for after the initial activation |
+| Cooldown | How many turns before this entry can be activated again |
+| Group | The name of a configured budget group |
+| Tags | A list of tags. Can be used in Weaver (eventually; not yet implemented) |
